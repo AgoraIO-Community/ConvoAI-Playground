@@ -30,6 +30,22 @@ window.Utils = class Utils {
             ttsKey = document.getElementById("cartesiaTtsKey").value.trim();
         } else if (ttsVendor === "openai") {
             ttsKey = document.getElementById("openaiTtsKey").value.trim();
+        } else if (ttsVendor === "rime") {
+            ttsKey = document.getElementById("rimeTtsKey") ? document.getElementById("rimeTtsKey").value.trim() : '';
+        // } else if (ttsVendor === "minimax") { // COMMENTED OUT: Not in Agora 2.0 official docs
+        //     ttsKey = document.getElementById("minimaxTtsKey") ? document.getElementById("minimaxTtsKey").value.trim() : '';
+        } else if (ttsVendor === "fishaudio") {
+            ttsKey = document.getElementById("fishaudioTtsKey") ? document.getElementById("fishaudioTtsKey").value.trim() : '';
+        } else if (ttsVendor === "groq") {
+            ttsKey = document.getElementById("groqTtsKey") ? document.getElementById("groqTtsKey").value.trim() : '';
+        } else if (ttsVendor === "google") {
+            ttsKey = document.getElementById("googleTtsCredentials") ? document.getElementById("googleTtsCredentials").value.trim() : '';
+        // } else if (ttsVendor === "playht") { // COMMENTED OUT: Not in Agora 2.0 official docs
+        //     ttsKey = document.getElementById("playhtTtsKey") ? document.getElementById("playhtTtsKey").value.trim() : '';
+        } else if (ttsVendor === "amazon") {
+            // Amazon Polly uses access key and secret key, not a single ttsKey
+            // We'll handle this in buildAgentConfig
+            ttsKey = '';
         }
 
         // Get new v1.6 fields
@@ -40,11 +56,13 @@ window.Utils = class Utils {
         const enableAivad = document.getElementById("enableAivad").checked;
         const enableMllm = document.getElementById("enableMllm").checked;
         const enableRtm = document.getElementById("enableRtm").checked;
+        const enableSal = document.getElementById("enableSal") ? document.getElementById("enableSal").checked : false;
         
         // Get turn detection settings
         const turnDetectionEnabled = document.getElementById("turnDetectionEnabled").checked;
         const turnDetectionType = document.getElementById("turnDetectionType").value;
         const turnInterruptMode = document.getElementById("interruptMode").value;
+        const turnInterruptKeywords = document.getElementById("interruptKeywords") ? document.getElementById("interruptKeywords").value.trim() : '';
         const turnInterruptDuration = document.getElementById("turnInterruptDuration").value || null;
         const turnPrefixPadding = document.getElementById("turnPrefixPadding").value || null;
         const turnSilenceDuration = document.getElementById("turnSilenceDuration").value || null;
@@ -61,6 +79,12 @@ window.Utils = class Utils {
         const dataChannel = document.getElementById("dataChannel").value;
         const enableMetrics = document.getElementById("enableMetrics").checked;
         const enableErrorMessage = document.getElementById("enableErrorMessage").checked;
+        // Farewell config
+        const farewellGracefulEnabled = document.getElementById("farewellGracefulEnabled") ? document.getElementById("farewellGracefulEnabled").checked : false;
+        const farewellGracefulTimeout = document.getElementById("farewellGracefulTimeout") ? document.getElementById("farewellGracefulTimeout").value || null : null;
+        // SAL config
+        const salMode = document.getElementById("salMode") ? document.getElementById("salMode").value : null;
+        const salSampleUrls = document.getElementById("salSampleUrls") ? document.getElementById("salSampleUrls").value.trim() : '';
         // Transcript config
         const transcriptEnableSet = document.getElementById("transcriptEnableSet").checked;
         const transcriptEnable = document.getElementById("transcriptEnable").value === 'true';
@@ -78,6 +102,14 @@ window.Utils = class Utils {
         const mllmVendor = document.getElementById("mllmVendor").value;
         const mllmStyle = document.getElementById("mllmStyle").value;
         const mllmMaxHistory = document.getElementById("mllmMaxHistory").value || null;
+        
+        // Get Vertex AI specific settings
+        const vertexaiAdcCredentials = document.getElementById("vertexaiAdcCredentials") ? document.getElementById("vertexaiAdcCredentials").value.trim() : '';
+        const vertexaiProjectId = document.getElementById("vertexaiProjectId") ? document.getElementById("vertexaiProjectId").value.trim() : '';
+        const vertexaiLocation = document.getElementById("vertexaiLocation") ? document.getElementById("vertexaiLocation").value.trim() : '';
+        const vertexaiModel = document.getElementById("vertexaiModel") ? document.getElementById("vertexaiModel").value.trim() : '';
+        const vertexaiVoice = document.getElementById("vertexaiVoice") ? document.getElementById("vertexaiVoice").value.trim() : '';
+        const vertexaiInstructions = document.getElementById("vertexaiInstructions") ? document.getElementById("vertexaiInstructions").value.trim() : '';
         
         // Get input/output modalities
         const inputModalities = [
@@ -111,6 +143,11 @@ window.Utils = class Utils {
             idleTimeout: idleTimeout,
             llmApiKey: document.getElementById("llmApiKey").value.trim(),
             llmUrl: document.getElementById("llmUrl").value.trim(),
+            llmAccessKey: document.getElementById("llmAccessKey") ? document.getElementById("llmAccessKey").value.trim() : '',
+            llmSecret: document.getElementById("llmSecret") ? document.getElementById("llmSecret").value.trim() : '',
+            llmHeaders: document.getElementById("llmHeaders") ? document.getElementById("llmHeaders").value.trim() : '',
+            llmVendor: document.getElementById("llmVendor") ? document.getElementById("llmVendor").value.trim() : '',
+            llmStyle: document.getElementById("llmStyle") ? document.getElementById("llmStyle").value.trim() : '',
             ttsKey: ttsKey,
             gMsg: document.getElementById("gMsg").value.trim(),
             fMsg: document.getElementById("fMsg").value.trim(),
@@ -126,6 +163,7 @@ window.Utils = class Utils {
             enableAivad: enableAivad,
             enableMllm: enableMllm,
             enableRtm: enableRtm,
+            enableSal: enableSal,
             // RTM UID
             agentRtmUid: document.getElementById('agentRtmUid') ? document.getElementById('agentRtmUid').value.trim() : '',
             
@@ -137,10 +175,19 @@ window.Utils = class Utils {
             mllmStyle: mllmStyle,
             mllmMaxHistory: mllmMaxHistory,
             
+            // Vertex AI settings
+            vertexaiAdcCredentials: vertexaiAdcCredentials,
+            vertexaiProjectId: vertexaiProjectId,
+            vertexaiLocation: vertexaiLocation,
+            vertexaiModel: vertexaiModel,
+            vertexaiVoice: vertexaiVoice,
+            vertexaiInstructions: vertexaiInstructions,
+            
             // Turn detection
             turnDetectionEnabled: turnDetectionEnabled,
             turnDetectionType: turnDetectionType,
             turnInterruptMode: turnInterruptMode,
+            turnInterruptKeywords: turnInterruptKeywords,
             turnInterruptDuration: turnInterruptDuration,
             turnPrefixPadding: turnPrefixPadding,
             turnSilenceDuration: turnSilenceDuration,
@@ -157,6 +204,11 @@ window.Utils = class Utils {
             dataChannel: dataChannel,
             enableMetrics: enableMetrics,
             enableErrorMessage: enableErrorMessage,
+            farewellGracefulEnabled: farewellGracefulEnabled,
+            farewellGracefulTimeout: farewellGracefulTimeout,
+            // SAL config
+            salMode: salMode,
+            salSampleUrls: salSampleUrls,
             // Transcript config
             transcriptEnableSet: transcriptEnableSet,
             transcriptEnable: transcriptEnable,
@@ -379,7 +431,46 @@ window.Utils = class Utils {
         const vendor = formData.asrVendor;
         const asrLanguage = document.getElementById('asrLanguage').value;
         
-        if (vendor === 'ares') {
+        if (vendor === 'custom') {
+            const customAsrJson = document.getElementById('customAsrJson');
+            if (!customAsrJson) {
+                console.error('Custom ASR JSON textarea not found');
+                return {
+                    vendor: 'ares',
+                    language: 'en-US'
+                };
+            }
+            
+            const jsonString = customAsrJson.value.trim();
+            if (!jsonString) {
+                console.error('Custom ASR JSON is empty');
+                throw new Error('Custom ASR configuration is required when using custom vendor');
+            }
+            
+            // Normalize all types of curly quotes to straight quotes for JSON parsing
+            // Handle left/right double quotes (U+201C, U+201D) and left/right single quotes (U+2018, U+2019)
+            let normalizedJson = jsonString
+                .replace(/\u201C/g, '"')  // Left double curly quote (")
+                .replace(/\u201D/g, '"')  // Right double curly quote (")
+                .replace(/\u2018/g, "'")  // Left single curly quote (')
+                .replace(/\u2019/g, "'")  // Right single curly quote (')
+                .replace(/\u201A/g, "'")  // Single low-9 quotation mark
+                .replace(/\u201B/g, "'")  // Single high-reversed-9 quotation mark
+                .replace(/\u201E/g, '"')  // Double low-9 quotation mark
+                .replace(/\u201F/g, '"'); // Double high-reversed-9 quotation mark
+            
+            try {
+                const parsed = JSON.parse(normalizedJson);
+                // Ensure it's an object (not array or null)
+                if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                    throw new Error('Custom ASR configuration must be a valid JSON object');
+                }
+                return parsed;
+            } catch (e) {
+                console.error('Custom ASR JSON parse error:', e, 'Input:', normalizedJson);
+                throw new Error(`Invalid JSON in custom ASR configuration: ${e.message}`);
+            }
+        } else if (vendor === 'ares') {
             return {
                 vendor: 'ares',
                 language: asrLanguage
@@ -431,6 +522,88 @@ window.Utils = class Utils {
                 vendor: 'deepgram',
                 params: params
             };
+        } else if (vendor === 'openai') {
+            const openaiAsrKey = document.getElementById('openaiAsrKey').value.trim();
+            
+            return {
+                vendor: 'openai',
+                params: {
+                    api_key: openaiAsrKey
+                },
+                language: asrLanguage
+            };
+        } else if (vendor === 'speechmatics') {
+            const speechmaticsAsrKey = document.getElementById('speechmaticsAsrKey').value.trim();
+            const speechmaticsAsrLanguage = document.getElementById('speechmaticsAsrLanguage').value.trim();
+            
+            return {
+                vendor: 'speechmatics',
+                params: {
+                    api_key: speechmaticsAsrKey,
+                    language: speechmaticsAsrLanguage
+                }
+            };
+        } else if (vendor === 'assemblyai') {
+            const assemblyaiAsrKey = document.getElementById('assemblyaiAsrKey').value.trim();
+            const assemblyaiAsrLanguage = document.getElementById('assemblyaiAsrLanguage').value.trim();
+            
+            return {
+                vendor: 'assemblyai',
+                params: {
+                    api_key: assemblyaiAsrKey,
+                    language: assemblyaiAsrLanguage
+                }
+            };
+        } else if (vendor === 'amazon') {
+            const amazonAsrRegion = document.getElementById('amazonAsrRegion').value.trim();
+            const amazonAsrAccessKeyId = document.getElementById('amazonAsrAccessKeyId').value.trim();
+            const amazonAsrSecretAccessKey = document.getElementById('amazonAsrSecretAccessKey').value.trim();
+            const amazonAsrLanguageCode = document.getElementById('amazonAsrLanguageCode').value.trim();
+            const amazonAsrMediaSampleRateHz = document.getElementById('amazonAsrMediaSampleRateHz').value.trim();
+            const amazonAsrMediaEncoding = document.getElementById('amazonAsrMediaEncoding').value;
+            
+            const params = {
+                region: amazonAsrRegion,
+                access_key_id: amazonAsrAccessKeyId,
+                secret_access_key: amazonAsrSecretAccessKey,
+                language_code: amazonAsrLanguageCode
+            };
+            
+            // Add optional parameters if provided
+            if (amazonAsrMediaSampleRateHz) {
+                params.media_sample_rate_hz = parseInt(amazonAsrMediaSampleRateHz, 10);
+            }
+            if (amazonAsrMediaEncoding) {
+                params.media_encoding = amazonAsrMediaEncoding;
+            }
+            
+            return {
+                vendor: 'amazon',
+                params: params
+            };
+        } else if (vendor === 'google') {
+            const googleAsrProjectId = document.getElementById('googleAsrProjectId').value.trim();
+            const googleAsrLocation = document.getElementById('googleAsrLocation').value.trim();
+            const googleAsrAdcCredentials = document.getElementById('googleAsrAdcCredentials').value.trim();
+            const googleAsrLanguage = document.getElementById('googleAsrLanguage').value.trim();
+            const googleAsrModel = document.getElementById('googleAsrModel').value.trim();
+            
+            const params = {
+                project_id: googleAsrProjectId,
+                location: googleAsrLocation,
+                adc_credentials_string: googleAsrAdcCredentials,
+                language: googleAsrLanguage
+            };
+            
+            // Add optional model if provided
+            if (googleAsrModel) {
+                params.model = googleAsrModel;
+            }
+            
+            return {
+                vendor: 'google',
+                params: params
+            };
         }
         
         // Default to ARES if vendor is not recognized
@@ -461,6 +634,112 @@ window.Utils = class Utils {
         if (formData.enableRtm) {
             advancedFeatures.enable_rtm = true;
         }
+        if (formData.enableSal) {
+            advancedFeatures.enable_sal = true;
+        }
+
+        // Prepare SAL config (optional - only included when enableSal is true)
+        let sal = null;
+        if (formData.enableSal) {
+            const salMode = formData.salMode || 'locking'; // Default to 'locking' if not provided
+            
+            // Validate recognition mode requires custom LLM vendor
+            if (salMode === 'recognition') {
+                const llmVendor = formData.llmVendor ? formData.llmVendor.trim().toLowerCase() : '';
+                if (llmVendor !== 'custom') {
+                    console.warn('SAL Warning: Recognition mode requires LLM vendor to be set to "custom" to process speaker information (vpids in metadata). Current LLM vendor:', llmVendor || '(not set)');
+                }
+            }
+            
+            sal = {
+                sal_mode: salMode
+            };
+            
+            // Parse sample URLs - JSON format only
+            // Only include sample_urls in the config if there are actual URLs
+            if (formData.salSampleUrls && formData.salSampleUrls.trim()) {
+                let trimmedUrls = formData.salSampleUrls.trim();
+                let parsed = null;
+                
+                // Normalize all types of curly quotes to straight quotes for JSON parsing
+                // Handle left/right double quotes (U+201C, U+201D) and left/right single quotes (U+2018, U+2019)
+                // Use explicit Unicode character codes to ensure matching
+                trimmedUrls = trimmedUrls
+                    .replace(/\u201C/g, '"')  // Left double curly quote (")
+                    .replace(/\u201D/g, '"')  // Right double curly quote (")
+                    .replace(/\u2018/g, "'")  // Left single curly quote (')
+                    .replace(/\u2019/g, "'")  // Right single curly quote (')
+                    .replace(/\u201A/g, "'")  // Single low-9 quotation mark
+                    .replace(/\u201B/g, "'")  // Single high-reversed-9 quotation mark
+                    .replace(/\u201E/g, '"')  // Double low-9 quotation mark
+                    .replace(/\u201F/g, '"'); // Double high-reversed-9 quotation mark
+                
+                try {
+                    parsed = JSON.parse(trimmedUrls);
+                    // Ensure it's an object (not array or null)
+                    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                        parsed = null;
+                    }
+                } catch (e) {
+                    console.error('SAL sample URLs JSON parse error:', e, 'Input:', trimmedUrls);
+                    parsed = null;
+                }
+                
+                // Validate and apply SAL requirements
+                if (parsed && typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                    // Validate SAL requirements
+                    const keys = Object.keys(parsed);
+                    
+                    // Check for reserved "unknown" keyword
+                    if (keys.some(key => key.toLowerCase() === 'unknown')) {
+                        console.warn('SAL Warning: "unknown" is a reserved keyword and cannot be used as a voiceprint name. It will be ignored.');
+                        // Remove "unknown" key
+                        delete parsed.unknown;
+                        delete parsed.Unknown;
+                        delete parsed.UNKNOWN;
+                    }
+                    
+                    // Validate quantity based on mode
+                    const validKeys = Object.keys(parsed);
+                    if (validKeys.length === 0) {
+                        // Empty after parsing/validation - check if required for this mode
+                        if (salMode === 'recognition') {
+                            console.warn('SAL Warning: Recognition mode requires at least 1 voiceprint URL.');
+                        }
+                        // Don't include sample_urls if empty
+                    } else if (salMode === 'recognition' && validKeys.length > 1) {
+                        // Recognition mode allows up to 1 URL
+                        console.warn(`SAL Warning: Recognition mode allows up to 1 voiceprint URL, but ${validKeys.length} provided. Only the first one will be used.`);
+                        const limited = {};
+                        limited[validKeys[0]] = parsed[validKeys[0]];
+                        sal.sample_urls = limited;
+                    } else if (salMode === 'locking' && validKeys.length > 3) {
+                        // Locking mode allows 1-3 URLs
+                        console.warn(`SAL Warning: Locking mode allows up to 3 voiceprint URLs, but ${validKeys.length} provided. Only the first 3 will be used.`);
+                        const limited = {};
+                        validKeys.slice(0, 3).forEach(key => {
+                            limited[key] = parsed[key];
+                        });
+                        sal.sample_urls = limited;
+                    } else {
+                        // Valid URLs - include sample_urls
+                        sal.sample_urls = parsed;
+                    }
+                } else {
+                    // If parsing fails, check if required for this mode
+                    if (salMode === 'recognition') {
+                        console.warn('SAL Warning: Recognition mode requires at least 1 voiceprint URL, but parsing failed.');
+                    }
+                    // Don't include sample_urls if parsing failed
+                }
+            } else {
+                // If no sample URLs provided, check if required for this mode
+                if (salMode === 'recognition') {
+                    console.warn('SAL Warning: Recognition mode requires at least 1 voiceprint URL. Leave empty only for locking mode (seamless mode).');
+                }
+                // For locking mode, empty is valid (seamless mode) - don't include sample_urls
+            }
+        }
 
         // Prepare turn detection config
         let turnDetection = null;
@@ -469,6 +748,18 @@ window.Utils = class Utils {
                 type: formData.turnDetectionType,
                 interrupt_mode: formData.turnInterruptMode
             };
+            
+            // Add interrupt keywords if provided (only for keywords interrupt mode)
+            // Maximum 128 keywords allowed
+            if (formData.turnInterruptKeywords && formData.turnInterruptMode === 'keywords') {
+                const keywords = formData.turnInterruptKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+                if (keywords.length > 128) {
+                    throw new Error('Maximum 128 interrupt keywords allowed. Please reduce the number of keywords.');
+                }
+                if (keywords.length > 0) {
+                    turnDetection.interrupt_keywords = keywords;
+                }
+            }
             
             // Add VAD parameters if they have values
             if (formData.turnInterruptDuration) {
@@ -508,6 +799,20 @@ window.Utils = class Utils {
                     action: formData.silenceAction,
                     content: formData.silenceContent
                 };
+            }
+            
+            // Add farewell config if enabled
+            if (formData.farewellGracefulEnabled) {
+                parameters.farewell_config = {
+                    graceful_enabled: true
+                };
+                if (formData.farewellGracefulTimeout) {
+                    const timeout = parseInt(formData.farewellGracefulTimeout, 10);
+                    if (timeout < 0 || timeout > 120) {
+                        throw new Error('Farewell graceful timeout must be between 0 and 120 seconds.');
+                    }
+                    parameters.farewell_config.graceful_timeout_seconds = timeout;
+                }
             }
             
             // Add RTM metrics if enabled
@@ -552,6 +857,7 @@ window.Utils = class Utils {
                 idle_timeout: idleTimeout,
                 ...(formData.enableRtm && formData.agentRtmUid ? { agent_rtm_uid: formData.agentRtmUid } : {}),
                 ...(Object.keys(advancedFeatures).length > 0 ? { advanced_features: advancedFeatures } : {}),
+                ...(sal ? { sal: sal } : {}),
                 ...(formData.enableMllm ? {} : { asr: this.buildAsrConfig(formData) }), // Only include ASR if MLLM is not enabled
                 ...(turnDetection ? { turn_detection: turnDetection } : {}),
                 ...(parameters ? { parameters: parameters } : {}),
@@ -559,6 +865,11 @@ window.Utils = class Utils {
                     llm: {
                         url: formData.llmUrl,
                         api_key: formData.llmApiKey,
+                        ...(formData.llmAccessKey ? { access_key: formData.llmAccessKey } : {}),
+                        ...(formData.llmSecret ? { secret: formData.llmSecret } : {}),
+                        ...(formData.llmHeaders ? { headers: formData.llmHeaders } : {}),
+                        ...(formData.llmVendor ? { vendor: formData.llmVendor } : {}),
+                        ...(formData.llmStyle ? { style: formData.llmStyle } : {}),
                         system_messages: systemMessages,
                         greeting_message: formData.gMsg,
                         failure_message: formData.fMsg,
@@ -573,15 +884,27 @@ window.Utils = class Utils {
                 }),
                 ...(formData.enableMllm ? { // Include MLLM if enabled
                     mllm: {
-                        url: formData.mllmUrl,
-                        api_key: formData.mllmApiKey,
+                        ...(formData.mllmVendor === 'vertexai' ? {} : { url: formData.mllmUrl }), // URL not needed for vertexai
+                        ...(formData.mllmVendor === 'vertexai' ? {} : { api_key: formData.mllmApiKey }), // API key not needed for vertexai
                         ...(formData.mllmGreetingMessage ? { greeting_message: formData.mllmGreetingMessage } : {}),
                         ...(formData.mllmVendor ? { vendor: formData.mllmVendor } : {}),
                         ...(formData.mllmStyle ? { style: formData.mllmStyle } : {}),
                         ...(formData.mllmMaxHistory ? { max_history: parseInt(formData.mllmMaxHistory, 10) } : {}),
-                        input_modalities: ["text", "audio"], // MLLM always uses text and audio
-                        output_modalities: ["text", "audio"], // MLLM always outputs text and audio
-                        ...(Object.keys(customParams).length > 0 ? { params: customParams } : {}) // Only include params if customParams is not empty
+                        input_modalities: ["audio"], // MLLM uses audio input
+                        output_modalities: ["audio"], // MLLM outputs audio
+                        ...(formData.mllmVendor === 'vertexai' ? {
+                            params: {
+                                model: formData.vertexaiModel || 'gemini-live-2.5-flash-preview-native-audio-09-2025',
+                                adc_credentials_string: formData.vertexaiAdcCredentials,
+                                project_id: formData.vertexaiProjectId,
+                                location: formData.vertexaiLocation,
+                                ...(formData.vertexaiVoice ? { voice: formData.vertexaiVoice } : {}),
+                                ...(formData.vertexaiInstructions ? { instructions: formData.vertexaiInstructions } : {}),
+                                transcribe_agent: true,
+                                transcribe_user: true,
+                                ...customParams
+                            }
+                        } : (Object.keys(customParams).length > 0 ? { params: customParams } : {})) // Only include params if customParams is not empty
                     }
                 } : {}),
                         //add chorus scenario for websdk fix for now, merge with dynamic parameters
@@ -704,6 +1027,94 @@ window.Utils = class Utils {
                         provider: document.getElementById("humeaiProvider").value || "HUME_AI",
                         ...(document.getElementById("humeaiSpeed")?.value ? { speed: parseFloat(document.getElementById("humeaiSpeed").value) } : {}),
                         ...(document.getElementById("humeaiTrailingSilence")?.value ? { trailing_silence: parseFloat(document.getElementById("humeaiTrailingSilence").value) } : {})
+                    }
+                };
+            } else if (formData.vendor === "rime") {
+                config.properties.tts = {
+                    vendor: "rime",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: {
+                        api_key: document.getElementById("rimeTtsKey").value,
+                        speaker: document.getElementById("rimeSpeaker").value,
+                        modelId: document.getElementById("rimeModelId").value
+                    }
+                };
+            // } else if (formData.vendor === "minimax") { // COMMENTED OUT: Not in Agora 2.0 official docs
+            //     config.properties.tts = {
+            //         vendor: "minimax",
+            //         ...(skip_patterns ? { skip_patterns } : {}),
+            //         params: {
+            //             api_key: document.getElementById("minimaxTtsKey").value,
+            //             group_id: document.getElementById("minimaxGroupId").value,
+            //             model: document.getElementById("minimaxModel").value,
+            //             voice_setting: {
+            //                 voice_id: document.getElementById("minimaxVoiceId").value
+            //             },
+            //             url: document.getElementById("minimaxUrl").value
+            //         }
+            //     };
+            } else if (formData.vendor === "fishaudio") {
+                config.properties.tts = {
+                    vendor: "fishaudio",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: {
+                        api_key: document.getElementById("fishaudioTtsKey").value,
+                        reference_id: document.getElementById("fishaudioReferenceId").value,
+                        backend: document.getElementById("fishaudioBackend").value
+                    }
+                };
+            } else if (formData.vendor === "groq") {
+                config.properties.tts = {
+                    vendor: "groq",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: {
+                        api_key: document.getElementById("groqTtsKey").value,
+                        model: document.getElementById("groqModel").value,
+                        voice: document.getElementById("groqVoice").value
+                    }
+                };
+            } else if (formData.vendor === "google") {
+                const audioConfig = {};
+                if (document.getElementById("googleSpeakingRate")?.value) {
+                    audioConfig.speaking_rate = parseFloat(document.getElementById("googleSpeakingRate").value);
+                }
+                if (document.getElementById("googleSampleRate")?.value) {
+                    audioConfig.sample_rate_hertz = parseInt(document.getElementById("googleSampleRate").value, 10);
+                }
+                
+                config.properties.tts = {
+                    vendor: "google",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: {
+                        credentials: document.getElementById("googleTtsCredentials").value,
+                        VoiceSelectionParams: {
+                            name: document.getElementById("googleVoiceName").value
+                        },
+                        ...(Object.keys(audioConfig).length > 0 ? { AudioConfig: audioConfig } : {})
+                    }
+                };
+            // } else if (formData.vendor === "playht") { // COMMENTED OUT: Not in Agora 2.0 official docs
+            //     config.properties.tts = {
+            //         vendor: "playht",
+            //         ...(skip_patterns ? { skip_patterns } : {}),
+            //         params: {
+            //             api_key: document.getElementById("playhtTtsKey").value,
+            //             user_id: document.getElementById("playhtUserId").value,
+            //             voice_engine: document.getElementById("playhtVoiceEngine").value,
+            //             voice: document.getElementById("playhtVoice").value,
+            //             ...(document.getElementById("playhtSpeed")?.value ? { speed: parseFloat(document.getElementById("playhtSpeed").value) } : {})
+            //         }
+            //     };
+            } else if (formData.vendor === "amazon") {
+                config.properties.tts = {
+                    vendor: "amazon",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: {
+                        aws_access_key_id: document.getElementById("amazonPollyAccessKey").value,
+                        aws_secret_access_key: document.getElementById("amazonPollySecretKey").value,
+                        region_name: document.getElementById("amazonPollyRegion").value,
+                        voice: document.getElementById("amazonPollyVoice").value,
+                        engine: document.getElementById("amazonPollyEngine").value
                     }
                 };
             }

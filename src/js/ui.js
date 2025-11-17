@@ -999,6 +999,50 @@ window.UI = class UI {
             "humeaiSpeedBlock",
             "humeaiTrailingSilenceBlock"
         ];
+        const rimeBlocks = [
+            "rimeTtsKeyBlock",
+            "rimeSpeakerBlock",
+            "rimeModelIdBlock"
+        ];
+        // COMMENTED OUT: Not in Agora 2.0 official docs
+        // const minimaxBlocks = [
+        //     "minimaxTtsKeyBlock",
+        //     "minimaxGroupIdBlock",
+        //     "minimaxModelBlock",
+        //     "minimaxVoiceIdBlock",
+        //     "minimaxUrlBlock"
+        // ];
+        const fishaudioBlocks = [
+            "fishaudioTtsKeyBlock",
+            "fishaudioReferenceIdBlock",
+            "fishaudioBackendBlock"
+        ];
+        const groqBlocks = [
+            "groqTtsKeyBlock",
+            "groqModelBlock",
+            "groqVoiceBlock"
+        ];
+        const googleBlocks = [
+            "googleTtsCredentialsBlock",
+            "googleVoiceNameBlock",
+            "googleSpeakingRateBlock",
+            "googleSampleRateBlock"
+        ];
+        // COMMENTED OUT: Not in Agora 2.0 official docs
+        // const playhtBlocks = [
+        //     "playhtTtsKeyBlock",
+        //     "playhtUserIdBlock",
+        //     "playhtVoiceEngineBlock",
+        //     "playhtVoiceBlock",
+        //     "playhtSpeedBlock"
+        // ];
+        const amazonPollyBlocks = [
+            "amazonPollyAccessKeyBlock",
+            "amazonPollySecretKeyBlock",
+            "amazonPollyRegionBlock",
+            "amazonPollyVoiceBlock",
+            "amazonPollyEngineBlock"
+        ];
 
         msBlocks.forEach(block => {
             const element = document.getElementById(block);
@@ -1032,6 +1076,57 @@ window.UI = class UI {
             const element = document.getElementById(block);
             if (element) {
                 element.classList.toggle("hidden", vendor !== "humeai");
+            }
+        });
+
+        rimeBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "rime");
+            }
+        });
+
+        // COMMENTED OUT: Not in Agora 2.0 official docs
+        // minimaxBlocks.forEach(block => {
+        //     const element = document.getElementById(block);
+        //     if (element) {
+        //         element.classList.toggle("hidden", vendor !== "minimax");
+        //     }
+        // });
+
+        fishaudioBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "fishaudio");
+            }
+        });
+
+        groqBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "groq");
+            }
+        });
+
+        googleBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "google");
+            }
+        });
+
+        // COMMENTED OUT: Not in Agora 2.0 official docs
+        // playhtBlocks.forEach(block => {
+        //     const element = document.getElementById(block);
+        //     if (element) {
+        //         element.classList.toggle("hidden", vendor !== "playht");
+        //     }
+        // });
+
+        amazonPollyBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "amazon");
             }
         });
 

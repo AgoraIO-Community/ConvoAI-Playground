@@ -51,17 +51,31 @@ class ASRManager {
     updateAsrConfigVisibility() {
         console.log('updateAsrConfigVisibility called');
         const asrVendor = document.getElementById('asrVendor');
+        const asrLanguageContainer = document.getElementById('asrLanguage')?.parentElement; // Get the container div
         const microsoftAsrConfig = document.getElementById('microsoftAsrConfig');
         const deepgramAsrConfig = document.getElementById('deepgramAsrConfig');
+        const openaiAsrConfig = document.getElementById('openaiAsrConfig');
+        const speechmaticsAsrConfig = document.getElementById('speechmaticsAsrConfig');
+        const assemblyaiAsrConfig = document.getElementById('assemblyaiAsrConfig');
+        const amazonAsrConfig = document.getElementById('amazonAsrConfig');
+        const googleAsrConfig = document.getElementById('googleAsrConfig');
+        const customAsrConfig = document.getElementById('customAsrConfig');
 
         console.log('ASR elements found:', {
             asrVendor: !!asrVendor,
+            asrLanguageContainer: !!asrLanguageContainer,
             microsoftAsrConfig: !!microsoftAsrConfig,
-            deepgramAsrConfig: !!deepgramAsrConfig
+            deepgramAsrConfig: !!deepgramAsrConfig,
+            openaiAsrConfig: !!openaiAsrConfig,
+            speechmaticsAsrConfig: !!speechmaticsAsrConfig,
+            assemblyaiAsrConfig: !!assemblyaiAsrConfig,
+            amazonAsrConfig: !!amazonAsrConfig,
+            googleAsrConfig: !!googleAsrConfig,
+            customAsrConfig: !!customAsrConfig
         });
 
-        if (!asrVendor || !microsoftAsrConfig || !deepgramAsrConfig) {
-            console.warn('ASR configuration elements not found');
+        if (!asrVendor) {
+            console.warn('ASR vendor element not found');
             return;
         }
 
@@ -69,19 +83,49 @@ class ASRManager {
         console.log('Selected vendor:', selectedVendor);
         
         // Hide all config sections
-        microsoftAsrConfig.classList.add('hidden');
-        deepgramAsrConfig.classList.add('hidden');
+        if (microsoftAsrConfig) microsoftAsrConfig.classList.add('hidden');
+        if (deepgramAsrConfig) deepgramAsrConfig.classList.add('hidden');
+        if (openaiAsrConfig) openaiAsrConfig.classList.add('hidden');
+        if (speechmaticsAsrConfig) speechmaticsAsrConfig.classList.add('hidden');
+        if (assemblyaiAsrConfig) assemblyaiAsrConfig.classList.add('hidden');
+        if (amazonAsrConfig) amazonAsrConfig.classList.add('hidden');
+        if (googleAsrConfig) googleAsrConfig.classList.add('hidden');
+        if (customAsrConfig) customAsrConfig.classList.add('hidden');
+        
+        // Show/hide main language dropdown based on vendor
+        // Speechmatics, AssemblyAI, Amazon, Google, and Custom have their own language fields or don't need language selection
+        if (asrLanguageContainer) {
+            if (selectedVendor === 'speechmatics' || selectedVendor === 'assemblyai' || selectedVendor === 'amazon' || selectedVendor === 'google' || selectedVendor === 'custom') {
+                asrLanguageContainer.classList.add('hidden');
+            } else {
+                asrLanguageContainer.classList.remove('hidden');
+            }
+        }
         
         // Show the selected config section (ARES doesn't need additional config)
-        if (selectedVendor === 'microsoft') {
+        if (selectedVendor === 'microsoft' && microsoftAsrConfig) {
             microsoftAsrConfig.classList.remove('hidden');
-        } else if (selectedVendor === 'deepgram') {
+        } else if (selectedVendor === 'deepgram' && deepgramAsrConfig) {
             deepgramAsrConfig.classList.remove('hidden');
+        } else if (selectedVendor === 'openai' && openaiAsrConfig) {
+            openaiAsrConfig.classList.remove('hidden');
+        } else if (selectedVendor === 'speechmatics' && speechmaticsAsrConfig) {
+            speechmaticsAsrConfig.classList.remove('hidden');
+        } else if (selectedVendor === 'assemblyai' && assemblyaiAsrConfig) {
+            assemblyaiAsrConfig.classList.remove('hidden');
+        } else if (selectedVendor === 'amazon' && amazonAsrConfig) {
+            amazonAsrConfig.classList.remove('hidden');
+        } else if (selectedVendor === 'google' && googleAsrConfig) {
+            googleAsrConfig.classList.remove('hidden');
+        } else if (selectedVendor === 'custom' && customAsrConfig) {
+            customAsrConfig.classList.remove('hidden');
         }
         // For ARES, no additional config section is shown
         
-        // Update language dropdown based on selected vendor
-        this.updateAsrLanguageDropdown(selectedVendor);
+        // Update language dropdown based on selected vendor (only if it's visible)
+        if (selectedVendor !== 'speechmatics' && selectedVendor !== 'assemblyai' && selectedVendor !== 'amazon' && selectedVendor !== 'google' && selectedVendor !== 'custom') {
+            this.updateAsrLanguageDropdown(selectedVendor);
+        }
     }
 
     updateAsrLanguageDropdown(vendor) {
@@ -402,6 +446,80 @@ class ASRManager {
                 langSelect.appendChild(option);
             });
             console.log('Added', deepgramLanguages.length, 'Deepgram language options');
+            
+        } else if (vendor === 'openai') {
+            console.log('Populating OpenAI languages');
+            // OpenAI uses standard language codes - using common ones
+            const openaiLanguages = [
+                { value: 'en-US', label: 'English (US) (en-US)' },
+                { value: 'en-GB', label: 'English (UK) (en-GB)' },
+                { value: 'es-ES', label: 'Spanish (Spain) (es-ES)' },
+                { value: 'fr-FR', label: 'French (France) (fr-FR)' },
+                { value: 'de-DE', label: 'German (Germany) (de-DE)' },
+                { value: 'it-IT', label: 'Italian (Italy) (it-IT)' },
+                { value: 'pt-BR', label: 'Portuguese (Brazil) (pt-BR)' },
+                { value: 'ja-JP', label: 'Japanese (Japan) (ja-JP)' },
+                { value: 'ko-KR', label: 'Korean (Korea) (ko-KR)' },
+                { value: 'zh-CN', label: 'Chinese (Simplified) (zh-CN)' }
+            ];
+            
+            openaiLanguages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang.value;
+                option.textContent = lang.label;
+                if (lang.value === 'en-US') option.selected = true;
+                langSelect.appendChild(option);
+            });
+            console.log('Added', openaiLanguages.length, 'OpenAI language options');
+            
+        } else if (vendor === 'speechmatics') {
+            console.log('Populating Speechmatics languages');
+            // Speechmatics uses simple language codes
+            const speechmaticsLanguages = [
+                { value: 'en', label: 'English (en)' },
+                { value: 'es', label: 'Spanish (es)' },
+                { value: 'fr', label: 'French (fr)' },
+                { value: 'de', label: 'German (de)' },
+                { value: 'it', label: 'Italian (it)' },
+                { value: 'pt', label: 'Portuguese (pt)' },
+                { value: 'ja', label: 'Japanese (ja)' },
+                { value: 'ko', label: 'Korean (ko)' },
+                { value: 'zh', label: 'Chinese (zh)' }
+            ];
+            
+            speechmaticsLanguages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang.value;
+                option.textContent = lang.label;
+                if (lang.value === 'en') option.selected = true;
+                langSelect.appendChild(option);
+            });
+            console.log('Added', speechmaticsLanguages.length, 'Speechmatics language options');
+            
+        } else if (vendor === 'assemblyai') {
+            console.log('Populating AssemblyAI languages');
+            // AssemblyAI uses BCP-47 language codes
+            const assemblyaiLanguages = [
+                { value: 'en-US', label: 'English (US) (en-US)' },
+                { value: 'en-GB', label: 'English (UK) (en-GB)' },
+                { value: 'es-ES', label: 'Spanish (Spain) (es-ES)' },
+                { value: 'fr-FR', label: 'French (France) (fr-FR)' },
+                { value: 'de-DE', label: 'German (Germany) (de-DE)' },
+                { value: 'it-IT', label: 'Italian (Italy) (it-IT)' },
+                { value: 'pt-BR', label: 'Portuguese (Brazil) (pt-BR)' },
+                { value: 'ja-JP', label: 'Japanese (Japan) (ja-JP)' },
+                { value: 'ko-KR', label: 'Korean (Korea) (ko-KR)' },
+                { value: 'zh-CN', label: 'Chinese (Simplified) (zh-CN)' }
+            ];
+            
+            assemblyaiLanguages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang.value;
+                option.textContent = lang.label;
+                if (lang.value === 'en-US') option.selected = true;
+                langSelect.appendChild(option);
+            });
+            console.log('Added', assemblyaiLanguages.length, 'AssemblyAI language options');
         }
         console.log('Final langSelect options count:', langSelect.options.length);
     }

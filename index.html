@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@2.2.2/agora-rtm.js"></script>
-  <script type="module" src="src/lib/microsoftVoicesByLang.js"></script>
+  <script src="src/lib/microsoftVoicesByLang.js"></script>
   <link rel="stylesheet" href="src/css/styles.css?v=1.3">
 </head>
 <body class="bg-gray-900 text-white min-h-screen py-10 px-4">
@@ -42,7 +42,7 @@
         class="bg-green-600 hover:bg-green-700 p-2 rounded font-bold"
       >
         Create Agent
-      </button>
+    </button>
       <div class="has-tooltip relative">
         <button
           id="copyCreateJson"
@@ -149,14 +149,14 @@
         </div>
         <div id="avatarUidNote" class="text-xs text-cyan-400 mt-1 hidden">
           Note: Remote RTC UIDs have been automatically set to match your Client RTC UID.
-        </div>
+      </div>
       </div>
         <div class="flex-1 has-tooltip relative">
       <input
         id="clientRtcToken"
             class="w-full px-3 py-2 rounded bg-gray-700 text-white"
             placeholder="Agora token (if token required)"
-          />
+      />
         <div class="tooltip">Authentication token for Agora RTC. Required if your project has token authentication enabled.</div>
         </div>
       </div>
@@ -199,14 +199,14 @@
             <div id="subtitleModeDisabledIndicator" class="text-xs text-gray-400 mt-1 flex items-center hidden">
               <div class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
               Subtitle mode selection disabled - Agent is running
-            </div>
           </div>
+        </div>
 
         <!-- Chat History Section -->
         <div class="mt-4">
           <div class="flex justify-between items-center mb-2">
             <div class="has-tooltip relative">
-              <h4 class="text-sm font-medium text-gray-300">Chat History</h4>
+            <h4 class="text-sm font-medium text-gray-300">Chat History</h4>
               <div class="tooltip">Real-time conversation history between you and the AI agent. Messages are displayed as they occur.</div>
             </div>
             <div class="space-x-2 has-tooltip relative">
@@ -224,13 +224,13 @@
           </div>
         </div>
       </div>
-        </div>
+          </div>
                   <!-- Query Agents Section -->
                   <div class="w-full p-4 bg-gray-700 rounded-lg">
                     <h3 class="text-sm font-semibold mb-3 text-gray-300">Query Agents</h3>
                     <div class="space-y-3">
                       <div class="has-tooltip relative">
-                        <input
+          <input
                           id="agentId"
                           class="w-full p-2 rounded bg-gray-800 text-white"
                           placeholder="Agent ID to Query"
@@ -240,22 +240,22 @@
 
                       <div class="grid grid-cols-1 gap-2">
                         <div class="has-tooltip relative">
-                          <button
+        <button
                             id="queryAgentBtn"
                             class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold text-sm"
-                          >
+        >
                             Query Agent Status
-                          </button>
+        </button>
                           <div class="tooltip">Get the current status of the specified Conversational AI agent instance. Shows status like IDLE, STARTING, RUNNING, STOPPING, STOPPED, RECOVERING, or FAILED.</div>
                         </div>
 
                         <div class="has-tooltip relative">
-                          <button
+        <button
                             id="listAgentsBtn"
                             class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold text-sm"
-                          >
+        >
                             Retrieve Agent List
-                          </button>
+        </button>
                           <div class="tooltip">Get a list of Conversational AI agents that meet the specified conditions. Can filter by channel, time range, state, and limit results.</div>
                         </div>
 
@@ -287,9 +287,110 @@
                           id="queryResponse"
                           class="p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto"
                         ></pre>
-                      </div>
-                    </div>
-                  </div>
+            </div>
+          </div>
+          </div>
+
+                  <!-- Phone Number Management (Combined) -->
+                  <div class="w-full p-4 bg-gray-700 rounded-lg sip-phone-section" style="display: none;">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">Phone Number Management</h3>
+                    <div class="space-y-2">
+              <div class="has-tooltip relative">
+                <input
+                          id="phoneNumberInput"
+                          class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                          placeholder="Phone Number (e.g., +1234567890)"
+                />
+                        <div class="tooltip">The phone number for import, get info, update, or delete operations.</div>
+              </div>
+                      <div class="grid grid-cols-2 gap-2">
+              <div class="has-tooltip relative">
+                <input
+                            id="phoneCountryCode"
+                            class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                            placeholder="Country Code (e.g., US)"
+                />
+                          <div class="tooltip">Country code for the phone number (required for import).</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                            id="phoneAreaCode"
+                            class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                            placeholder="Area Code (e.g., 415)"
+                />
+                          <div class="tooltip">Area code for the phone number (required for import).</div>
+              </div>
+              </div>
+              <div class="has-tooltip relative">
+                        <textarea
+                          id="phoneUpdateData"
+                          class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                          placeholder='Update Data (JSON, e.g., {"display_name": "My Number"}) - Only used for Update button'
+                          rows="2"
+                        ></textarea>
+                        <div class="tooltip">JSON object with fields to update. Only used when clicking the Update button.</div>
+              </div>
+                      <div class="grid grid-cols-2 gap-2">
+                        <button
+                          id="importPhoneNumberBtn"
+                          class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-bold"
+                        >
+                          Import Number
+          </button>
+                        <button
+                          id="getPhoneInfoBtn"
+                          class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm font-bold"
+                        >
+                          Retrieve Number Info
+                        </button>
+                        <button
+                          id="updatePhoneNumberBtn"
+                          class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm font-bold"
+                        >
+                          Update Number Configuration
+                        </button>
+                        <button
+                          id="deletePhoneNumberBtn"
+                          class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-bold"
+                        >
+                          Delete Number
+                        </button>
+              </div>
+                      <div id="phoneNumberResult" class="hidden mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto break-words whitespace-pre-wrap" style="max-width: 100%; overflow-wrap: break-word; word-wrap: break-word;"></div>
+            </div>
+          </div>
+
+                  <!-- Retrieve Number List -->
+                  <div class="w-full p-4 bg-gray-700 rounded-lg sip-phone-section" style="display: none;">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">Retrieve Number List</h3>
+                    <div class="space-y-2">
+                      <button
+                        id="listPhoneNumbersBtn"
+                        class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-bold"
+                      >
+                        Retrieve Number List
+                      </button>
+                      <div class="relative mt-4 w-full" style="max-width: 100%; overflow: hidden;">
+                        <button
+                          id="copyPhoneListBtn"
+                          class="absolute top-2 right-2 bg-transparent hover:bg-gray-600 rounded p-0.5 focus:outline-none"
+                          title="Copy response"
+                          style="z-index:10;width:24px;height:24px;display:flex;align-items:center;justify-content:center;"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <rect x="3" y="3" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                          </svg>
+                        </button>
+                        <span id="copyPhoneListMsg" class="absolute top-2 right-10 text-green-400 text-xs hidden" style="z-index:10;">Copied!</span>
+                        <pre
+                          id="phoneListResult"
+                          class="p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all"
+                          style="max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;"
+                        ></pre>
+              </div>
+              </div>
+            </div>
           </div>
                   <!-- Right Section: Send Messages and Broadcast -->
         <div class="space-y-4">
@@ -304,8 +405,8 @@
                 </div>
                 <button id="sendTextBtn" class="bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded text-sm disabled:opacity-50 disabled:pointer-events-none" disabled title="Text messages disabled when RTM is not enabled">
                   <span class="material-icons text-sm">send</span>
-                </button>
-              </div>
+          </button>
+                  </div>
               <div class="flex items-center gap-2">
                 <div class="flex-grow has-tooltip relative">
                   <input type="text" id="imageUrlInput" placeholder="Enter image URL..." class="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm disabled:opacity-50 disabled:bg-gray-700" disabled>
@@ -314,12 +415,12 @@
                 <button id="sendImageBtn" class="bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded text-sm flex items-center disabled:opacity-50 disabled:pointer-events-none" disabled title="Image upload disabled when camera is active">
                   <span class="material-icons text-sm">send</span>
                 </button>
-              </div>
+                  </div>
               <div class="flex items-center gap-2">
                 <div class="flex-grow has-tooltip relative">
                   <input type="file" id="imageFileInput" accept="image/*" class="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm file:bg-gray-700 file:text-white file:border-0 file:rounded file:px-2 file:py-1 file:mr-2 disabled:opacity-50 disabled:bg-gray-700" disabled>
                   <div class="tooltip">Upload an image file to send to the agent for analysis. The image will be converted to base64. Disabled when camera is active.</div>
-                </div>
+                  </div>
                 <button id="sendImageFileBtn" class="bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded text-sm flex items-center disabled:opacity-50 disabled:pointer-events-none" disabled title="Image upload disabled when camera is active">
                   <span class="material-icons text-sm">upload</span>
                 </button>
@@ -331,31 +432,31 @@
               <div class="w-full p-4 bg-gray-700 rounded-lg">
                 <h3 class="text-sm font-semibold mb-3 text-gray-300">Broadcast Messages</h3>
             <div class="mb-2 has-tooltip relative">
-              <input
+                  <input
                 id="broadcastText"
                 maxlength="512"
-                class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+                    class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
                 placeholder="Enter broadcast message (max 512 bytes)"
-              />
+                  />
               <div class="tooltip">Enter a message to broadcast to all users in the channel. Maximum 512 characters.</div>
-            </div>
+                </div>
             <div class="mb-2 flex space-x-2">
-              <div class="has-tooltip relative">
+                <div class="has-tooltip relative">
                 <select id="broadcastPriority" class="p-2 rounded bg-gray-800 text-white border border-gray-500">
                   <option value="INTERRUPT">INTERRUPT</option>
                   <option value="APPEND">APPEND</option>
                   <option value="IGNORE">IGNORE</option>
-                </select>
+                  </select>
                 <div class="tooltip">Message priority: INTERRUPT (stop current activity), APPEND (add to queue), IGNORE (skip if busy)</div>
-              </div>
-              <div class="has-tooltip relative">
+                </div>
+                <div class="has-tooltip relative">
                 <select id="broadcastInterruptable" class="p-2 rounded bg-gray-800 text-white border border-gray-500">
                   <option value="true">Interrupt</option>
                   <option value="false">No Interrupt</option>
-                </select>
+                  </select>
                 <div class="tooltip">Whether this message can interrupt the agent's current activity</div>
+                </div>
               </div>
-            </div>
             <button
               id="sendBroadcastBtn"
               class="mt-2 px-3 py-2 bg-cyan-500 text-gray-900 rounded disabled:opacity-50 disabled:pointer-events-none hover:bg-cyan-400 w-full font-bold"
@@ -369,10 +470,222 @@
                Interrupt Agent
             </button>
             <div id="broadcastMsgStatus" class="mt-2 text-sm max-h-16 overflow-y-auto break-words"></div>
+            </div>
+
+          <!-- SIP Calling and Phone Number Management Toggle Button -->
+          <div class="mb-4 has-tooltip relative">
+            <button
+              id="toggleSipPhoneManagementBtn"
+              class="w-full px-4 py-3 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold text-sm flex items-center justify-between"
+            >
+              <span>SIP Calling and Phone Number Management</span>
+              <span id="toggleSipPhoneManagementIcon" class="ml-2">▼</span>
+            </button>
+            <div class="tooltip">Click to expand/collapse SIP calling and phone number management options. When expanded, the regular Create/Stop Agent buttons are disabled. Collapse this section to re-enable them.</div>
+          </div>
+
+          <!-- Initiate Outbound Call -->
+          <div class="w-full p-4 bg-gray-700 rounded-lg sip-phone-section" style="display: none;">
+            <h3 class="text-sm font-semibold mb-3 text-gray-300">Initiate Outbound Call</h3>
+              <div class="space-y-2">
+                <div class="has-tooltip relative">
+                  <input
+                  id="outboundCallPhoneNumber"
+                  class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                  placeholder="Phone Number (e.g., +1234567890)"
+                  />
+                <div class="tooltip">The recipient's phone number in E.164 format.</div>
+                </div>
+                <div class="has-tooltip relative">
+                  <input
+                  id="outboundCallCallerId"
+                  class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                  placeholder="Caller ID / From Number"
+                  />
+                <div class="tooltip">The phone number to display as the caller ID. Must be a number you own.</div>
+                </div>
+                <div class="has-tooltip relative">
+                  <input
+                  id="outboundCallSipRtcUid"
+                  class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                  placeholder="SIP RTC UID (e.g., 9999)"
+                  />
+                <div class="tooltip">The RTC UID for the SIP call. This is separate from the agent's RTC UID.</div>
+                </div>
+                <div class="has-tooltip relative">
+                  <input
+                  id="outboundCallSipRtcToken"
+                  class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                  placeholder="SIP RTC Token (optional)"
+                  />
+                <div class="tooltip">Optional RTC token for the SIP call. This is separate from the agent's token.</div>
+                </div>
+                <div class="has-tooltip relative">
+                  <input
+                  id="outboundCallPipelineId"
+                  class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                  placeholder="Pipeline ID (optional)"
+                  />
+                <div class="tooltip">Optional pipeline ID. If provided, only channel, token, and agent_rtc_uid will be used from the configuration. Otherwise, the complete configuration will be used.</div>
+                </div>
+              <div class="flex gap-2 items-center">
+                <button
+                  id="startOutboundCallBtn"
+                  class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-bold"
+                >
+                  Initiate Outbound Call
+                </button>
+                <div class="has-tooltip relative">
+                  <button
+                    id="copyOutboundCallJson"
+                    class="bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold text-sm"
+                    title="Copy Outbound Call JSON"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16h8M8 12h8m-8-4h8m2 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2z"></path>
+                    </svg>
+                  </button>
+                  <div class="tooltip">Copy Outbound Call JSON - Copy the outbound call configuration JSON to clipboard</div>
+                </div>
+                <button
+                  id="hangUpCallBtn"
+                  class="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-bold"
+                >
+                  Hang-up Call
+                </button>
+            </div>
+              <div id="startOutboundCallResult" class="hidden mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto break-words whitespace-pre-wrap" style="max-width: 100%; overflow-wrap: break-word; word-wrap: break-word;"></div>
+              <div id="hangUpCallResult" class="hidden mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto break-words whitespace-pre-wrap" style="max-width: 100%; overflow-wrap: break-word; word-wrap: break-word;"></div>
+            </div>
+          </div>
+
+          <!-- Retrieve Call Status -->
+          <div class="w-full p-4 bg-gray-700 rounded-lg sip-phone-section" style="display: none;">
+            <h3 class="text-sm font-semibold mb-3 text-gray-300">Retrieve Call Status</h3>
+            <div class="space-y-2">
+            <button
+                id="checkCallStatusBtn"
+                class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-bold"
+            >
+                Retrieve Call Status
+            </button>
+              <div class="relative mt-4 w-full" style="max-width: 100%; overflow: hidden;">
+            <button
+                  id="copyCallStatusBtn"
+                  class="absolute top-2 right-2 bg-transparent hover:bg-gray-600 rounded p-0.5 focus:outline-none"
+                  title="Copy response"
+                  style="z-index:10;width:24px;height:24px;display:flex;align-items:center;justify-content:center;"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <rect x="3" y="3" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+            </button>
+                <span id="copyCallStatusMsg" class="absolute top-2 right-10 text-green-400 text-xs hidden" style="z-index:10;">Copied!</span>
+                <pre
+                  id="callStatusResult"
+                  class="p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all"
+                  style="max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;"
+                ></pre>
+          </div>
+            </div>
+          </div>
+
+          <!-- Retrieve Call Records -->
+          <div class="w-full p-4 bg-gray-700 rounded-lg sip-phone-section" style="display: none;">
+            <h3 class="text-sm font-semibold mb-3 text-gray-300">Retrieve Call Records</h3>
+            <div class="space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <div class="has-tooltip relative">
+                  <input
+                    id="callHistoryFromTime"
+                    type="datetime-local"
+                    class="w-full p-2 rounded bg-gray-800 text-white text-xs"
+                  />
+                  <div class="tooltip">Start time for query (optional, default: 60 days ago).</div>
+              </div>
+                <div class="has-tooltip relative">
+                  <input
+                    id="callHistoryToTime"
+                    type="datetime-local"
+                    class="w-full p-2 rounded bg-gray-800 text-white text-xs"
+                  />
+                  <div class="tooltip">End time for query (optional, default: current time).</div>
+              </div>
+            </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="has-tooltip relative">
+                  <input
+                    id="callHistoryNumber"
+                    type="text"
+                    class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                    placeholder="Phone Number (optional)"
+                  />
+                  <div class="tooltip">Filter by phone number (calling or called).</div>
+          </div>
+          <div class="has-tooltip relative">
+            <select
+                    id="callHistoryType"
+                    class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+            >
+              <option value="">All Types</option>
+              <option value="inbound">Inbound</option>
+              <option value="outbound">Outbound</option>
+            </select>
+                  <div class="tooltip">Filter by call type.</div>
+          </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="has-tooltip relative">
+                  <input
+                    id="callHistoryLimit"
+                    type="number"
+                    class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                    placeholder="Limit"
+                    value="20"
+                    min="1"
+                  />
+                  <div class="tooltip">Maximum number of items per page (default: 20).</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+                    id="callHistoryCursor"
+                    type="text"
+                    class="w-full p-2 rounded bg-gray-800 text-white text-sm"
+                    placeholder="Cursor (optional)"
+            />
+                  <div class="tooltip">Pagination cursor (use agent_id from previous page).</div>
+          </div>
+              </div>
+          <button
+                id="getCallHistoryBtn"
+                class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm font-bold"
+          >
+                Retrieve Call Records
+          </button>
+                      <div class="relative mt-4 w-full" style="max-width: 100%; overflow: hidden;">
+          <button
+                          id="copyCallHistoryBtn"
+              class="absolute top-2 right-2 bg-transparent hover:bg-gray-600 rounded p-0.5 focus:outline-none"
+              title="Copy response"
+              style="z-index:10;width:24px;height:24px;display:flex;align-items:center;justify-content:center;"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                <rect x="3" y="3" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </button>
+                        <span id="copyCallHistoryMsg" class="absolute top-2 right-10 text-green-400 text-xs hidden" style="z-index:10;">Copied!</span>
+            <pre
+                          id="callHistoryResult"
+                          class="p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all"
+                          style="max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;"
+            ></pre>
+                      </div>
+            </div>
           </div>
         </div>
-          </div>
-        </div>
+    </div>
       </div>
 
 
@@ -816,8 +1129,8 @@
     // Initialize canvas size
     const canvas = document.getElementById("audio-wave");
     if (canvas) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
     }
 
     // Log any initialization errors
@@ -832,9 +1145,9 @@
         // Only prevent unchecking text when MLLM is not enabled
         const enableMllm = document.getElementById('enableMllm');
         if (enableMllm && !this.checked && !enableMllm.checked) {
-          this.checked = true; // Prevent unchecking text only when not in MLLM mode
+            this.checked = true; // Prevent unchecking text only when not in MLLM mode
         }
-      });
+    });
     }
 
     // Update the event listeners for output modalities
@@ -874,7 +1187,7 @@
         if (audioConfigModal) {
           audioConfigModal.classList.add('hidden');
         }
-      });
+    });
     }
 
     // Close modal when clicking outside
@@ -907,7 +1220,7 @@
       if (msg) {
       msg.classList.remove('hidden');
       setTimeout(() => msg.classList.add('hidden'), 1200);
-      }
+    }
     }
 
     const copyCreateJsonBtn = document.getElementById('copyCreateJson');
@@ -1167,7 +1480,640 @@
       });
     }
 
+    // Helper function to manage create/stop agent button states
+    function setAgentControlButtonsEnabled(enabled) {
+      const createBtn = document.getElementById('createAgentBtn');
+      const stopBtn = document.getElementById('stopAgentBtn');
+      const updateBtn = document.getElementById('updateAgentBtn');
+      
+      if (createBtn) {
+        createBtn.disabled = !enabled;
+        if (enabled) {
+          createBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+          createBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+      }
+      if (stopBtn) {
+        stopBtn.disabled = !enabled;
+        if (enabled) {
+          stopBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+          stopBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+      }
+      if (updateBtn) {
+        updateBtn.disabled = !enabled;
+        if (enabled) {
+          updateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+          updateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+      }
+    }
 
+    // SIP Calling and Phone Number Management Toggle
+    const toggleSipPhoneManagementBtn = document.getElementById('toggleSipPhoneManagementBtn');
+    const toggleSipPhoneManagementIcon = document.getElementById('toggleSipPhoneManagementIcon');
+    
+    if (toggleSipPhoneManagementBtn) {
+      toggleSipPhoneManagementBtn.addEventListener('click', function() {
+        // Get all sections with the sip-phone-section class
+        const sections = document.querySelectorAll('.sip-phone-section');
+        if (sections.length === 0) return;
+        
+        // Check if first section is currently hidden to determine state
+        const isHidden = sections[0].style.display === 'none';
+        
+        // Toggle all sections
+        sections.forEach(section => {
+          if (isHidden) {
+            section.style.display = '';
+          } else {
+            section.style.display = 'none';
+          }
+        });
+        
+        // Update icon and button states
+        if (isHidden) {
+          // Expanding - show sections and disable create/stop agent buttons
+          toggleSipPhoneManagementIcon.textContent = '▲';
+          setAgentControlButtonsEnabled(false);
+        } else {
+          // Collapsing - hide sections and enable create/stop agent buttons
+          toggleSipPhoneManagementIcon.textContent = '▼';
+          setAgentControlButtonsEnabled(true);
+        }
+      });
+    }
+
+    // Outbound Call Event Handlers
+    const startOutboundCallBtn = document.getElementById('startOutboundCallBtn');
+    if (startOutboundCallBtn) {
+      startOutboundCallBtn.addEventListener('click', async function() {
+        try {
+          // Disable button to prevent double-clicks
+          startOutboundCallBtn.disabled = true;
+          startOutboundCallBtn.textContent = 'Starting...';
+          
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          if (!customerId || !customerSecret || !appId) {
+            alert('Please configure credentials first');
+            startOutboundCallBtn.disabled = false;
+            startOutboundCallBtn.textContent = 'Initiate Outbound Call';
+            return;
+          }
+
+          const phoneNumber = document.getElementById('outboundCallPhoneNumber').value.trim();
+          const callerId = document.getElementById('outboundCallCallerId').value.trim();
+          const pipelineId = document.getElementById('outboundCallPipelineId').value.trim();
+          const sipRtcUid = document.getElementById('outboundCallSipRtcUid').value.trim();
+          const sipRtcToken = document.getElementById('outboundCallSipRtcToken').value.trim();
+
+          if (!phoneNumber || !callerId) {
+            alert('Please fill in phone number and caller ID');
+            startOutboundCallBtn.disabled = false;
+            startOutboundCallBtn.textContent = 'Initiate Outbound Call';
+            return;
+          }
+
+          if (!sipRtcUid) {
+            alert('Please fill in SIP RTC UID');
+            startOutboundCallBtn.disabled = false;
+            startOutboundCallBtn.textContent = 'Initiate Outbound Call';
+            return;
+          }
+
+          // Get the current agent configuration
+          const formData = window.Utils.getFormData();
+          const agentConfig = window.Utils.buildAgentConfig(formData, {});
+          
+          // Get agent name from form
+          const agentName = formData.uniqueName || `agent-${Math.random().toString(36).substring(2, 8)}`;
+
+          // Build outbound call config
+          let callConfig = {
+            name: agentName,
+            sip: {
+              to_number: phoneNumber,
+              from_number: callerId,
+              sip_rtc_uid: sipRtcUid,
+              sip_rtc_token: sipRtcToken || ""
+            },
+            pipeline_id: pipelineId || ""
+          };
+
+          // If pipeline ID is provided, only need channel, token, and agent_rtc_uid
+          if (pipelineId) {
+            callConfig.properties = {
+              channel: agentConfig.properties.channel,
+              token: agentConfig.properties.token,
+              agent_rtc_uid: agentConfig.properties.agent_rtc_uid
+            };
+          } else {
+            // Without pipeline ID, use complete configuration
+            callConfig.properties = agentConfig.properties;
+          }
+
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.startOutboundCall(customerId, customerSecret, callConfig);
+          
+          // Display JSON result
+          const resultDiv = document.getElementById('startOutboundCallResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto break-words whitespace-pre-wrap text-white';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box;';
+          }
+          
+          // Populate agent ID (returned from start, like normal start request)
+          if (result.agent_id) {
+            const agentIdElement = document.getElementById('agentId');
+            if (agentIdElement) {
+              agentIdElement.value = result.agent_id;
+            }
+          }
+
+          // Disable create, stop, and update agent buttons (SIP calling manages agent lifecycle)
+          setAgentControlButtonsEnabled(false);
+          
+          // Re-enable button
+          startOutboundCallBtn.disabled = false;
+          startOutboundCallBtn.textContent = 'Start Outbound Call';
+        } catch (error) {
+          console.error('Error starting outbound call:', error);
+          const resultDiv = document.getElementById('startOutboundCallResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs text-red-400 max-h-32 overflow-y-auto break-words whitespace-pre-wrap';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box;';
+          } else {
+            alert(`Error starting outbound call: ${error.message}`);
+          }
+          
+          // Re-enable button on error
+          startOutboundCallBtn.disabled = false;
+          startOutboundCallBtn.textContent = 'Start Outbound Call';
+        }
+      });
+    }
+
+    // Copy Outbound Call JSON button
+    const copyOutboundCallJsonBtn = document.getElementById('copyOutboundCallJson');
+    if (copyOutboundCallJsonBtn && window.Utils) {
+      copyOutboundCallJsonBtn.addEventListener('click', function() {
+        try {
+          // Get form values
+          const phoneNumber = document.getElementById('outboundCallPhoneNumber').value.trim();
+          const callerId = document.getElementById('outboundCallCallerId').value.trim();
+          const pipelineId = document.getElementById('outboundCallPipelineId').value.trim();
+          const sipRtcUid = document.getElementById('outboundCallSipRtcUid').value.trim();
+          const sipRtcToken = document.getElementById('outboundCallSipRtcToken').value.trim();
+
+          // Get the current agent configuration
+          const formData = window.Utils.getFormData();
+          const agentConfig = window.Utils.buildAgentConfig(formData, {});
+          
+          // Get agent name from form
+          const agentName = formData.uniqueName || `agent-${Math.random().toString(36).substring(2, 8)}`;
+
+          // Build outbound call config (same structure as in startOutboundCallBtn)
+          let callConfig = {
+            name: agentName,
+            sip: {
+              to_number: phoneNumber,
+              from_number: callerId,
+              sip_rtc_uid: sipRtcUid || "",
+              sip_rtc_token: sipRtcToken || ""
+            },
+            pipeline_id: pipelineId || ""
+          };
+
+          // If pipeline ID is provided, only need channel, token, and agent_rtc_uid
+          if (pipelineId) {
+            callConfig.properties = {
+              channel: agentConfig.properties.channel,
+              token: agentConfig.properties.token,
+              agent_rtc_uid: agentConfig.properties.agent_rtc_uid
+            };
+          } else {
+            // Without pipeline ID, use complete configuration
+            callConfig.properties = agentConfig.properties;
+          }
+
+          const jsonString = JSON.stringify(callConfig, null, 2);
+          
+          // Copy to clipboard
+          navigator.clipboard.writeText(jsonString);
+          showCopyMsg();
+          
+          // Show modal with JSON content
+          const jsonModal = document.getElementById('jsonDisplayModal');
+          const jsonModalTitle = document.getElementById('jsonModalTitle');
+          const jsonModalContent = document.getElementById('jsonModalContent');
+          
+          if (jsonModal && jsonModalTitle && jsonModalContent) {
+            jsonModalTitle.textContent = 'Outbound Call JSON Configuration';
+            jsonModalContent.textContent = jsonString;
+            jsonModal.classList.remove('hidden');
+          }
+        } catch (error) {
+          console.error('Error copying outbound call JSON:', error);
+          alert(`Error copying outbound call JSON: ${error.message}`);
+        }
+      });
+    }
+
+    const checkCallStatusBtn = document.getElementById('checkCallStatusBtn');
+    if (checkCallStatusBtn) {
+      checkCallStatusBtn.addEventListener('click', async function() {
+        try {
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          const agentIdElement = document.getElementById('agentId');
+          if (!agentIdElement || !agentIdElement.value.trim()) {
+            alert('Please start an agent first (Agent ID is required)');
+            return;
+          }
+          const agentId = agentIdElement.value.trim();
+
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.getOutboundCallStatus(customerId, customerSecret, agentId);
+          
+          const resultDiv = document.getElementById('callStatusResult');
+          if (resultDiv) {
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;';
+          }
+        } catch (error) {
+          const resultDiv = document.getElementById('callStatusResult');
+          if (resultDiv) {
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all text-red-400';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;';
+          }
+        }
+      });
+    }
+
+    const hangUpCallBtn = document.getElementById('hangUpCallBtn');
+    console.log('Looking for hang up button...', hangUpCallBtn);
+    if (hangUpCallBtn) {
+      console.log('Hang up button found, attaching event listener');
+      hangUpCallBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Hang up button clicked!', e);
+        try {
+          // Disable button to prevent double-clicks
+          hangUpCallBtn.disabled = true;
+          hangUpCallBtn.textContent = 'Hanging up...';
+          
+          console.log('Getting credentials...');
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          console.log('Credentials retrieved:', { customerId: !!customerId, customerSecret: !!customerSecret, appId: !!appId });
+          if (!customerId || !customerSecret || !appId) {
+            alert('Please configure credentials first');
+            hangUpCallBtn.disabled = false;
+            hangUpCallBtn.textContent = 'Hang-up Call';
+            return;
+          }
+          
+          const agentIdElement = document.getElementById('agentId');
+          if (!agentIdElement || !agentIdElement.value.trim()) {
+            alert('Please start an agent first (Agent ID is required)');
+            hangUpCallBtn.disabled = false;
+            hangUpCallBtn.textContent = 'Hang-up Call';
+            return;
+          }
+          const agentId = agentIdElement.value.trim();
+          console.log('Agent ID:', agentId);
+
+          if (!confirm('Are you sure you want to hang up this call?')) {
+            console.log('User cancelled hang up');
+            hangUpCallBtn.disabled = false;
+            hangUpCallBtn.textContent = 'Hang-up Call';
+            return;
+          }
+
+          console.log('Calling hangUpOutboundCall API...');
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.hangUpOutboundCall(customerId, customerSecret, agentId);
+          console.log('Hang up result:', result);
+          
+          // Display JSON result
+          const resultDiv = document.getElementById('hangUpCallResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto break-words whitespace-pre-wrap text-white';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box;';
+          }
+
+          // Re-enable create, stop, and update agent buttons (only if SIP sections are collapsed)
+          const sipSections = document.querySelectorAll('.sip-phone-section');
+          const allHidden = sipSections.length > 0 && Array.from(sipSections).every(section => section.style.display === 'none');
+          if (allHidden) {
+            setAgentControlButtonsEnabled(true);
+          }
+          
+          // Re-enable button
+          hangUpCallBtn.disabled = false;
+          hangUpCallBtn.textContent = 'Hang Up Call';
+        } catch (error) {
+          console.error('Error hanging up call:', error);
+          const resultDiv = document.getElementById('hangUpCallResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs text-red-400 max-h-32 overflow-y-auto break-words whitespace-pre-wrap';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box;';
+          } else {
+            alert(`Error hanging up call: ${error.message}`);
+          }
+          
+          // Re-enable button on error
+          hangUpCallBtn.disabled = false;
+          hangUpCallBtn.textContent = 'Hang Up Call';
+        }
+      });
+      console.log('Hang up event listener attached successfully');
+    } else {
+      console.error('Hang up button NOT FOUND! Button ID: hangUpCallBtn');
+    }
+
+    const getCallHistoryBtn = document.getElementById('getCallHistoryBtn');
+    if (getCallHistoryBtn) {
+      getCallHistoryBtn.addEventListener('click', async function() {
+        try {
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          
+          const params = {};
+          const fromTime = document.getElementById('callHistoryFromTime').value;
+          const toTime = document.getElementById('callHistoryToTime').value;
+          const number = document.getElementById('callHistoryNumber').value.trim();
+          const type = document.getElementById('callHistoryType').value;
+          const limit = document.getElementById('callHistoryLimit').value;
+          const cursor = document.getElementById('callHistoryCursor').value.trim();
+
+          if (fromTime) {
+            params.from_time = Math.floor(new Date(fromTime).getTime() / 1000);
+          }
+          if (toTime) {
+            params.to_time = Math.floor(new Date(toTime).getTime() / 1000);
+          }
+          if (number) params.number = number;
+          if (type) params.type = type;
+          if (limit) params.limit = parseInt(limit, 10);
+          if (cursor) params.cursor = cursor;
+
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.getCallRecords(customerId, customerSecret, params);
+          
+          const resultDiv = document.getElementById('callHistoryResult');
+          if (resultDiv) {
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;';
+        }
+        } catch (error) {
+          const resultDiv = document.getElementById('callHistoryResult');
+          if (resultDiv) {
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all text-red-400';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;';
+          }
+        }
+      });
+    }
+
+    // Phone Number Management Event Handlers
+    const listPhoneNumbersBtn = document.getElementById('listPhoneNumbersBtn');
+    if (listPhoneNumbersBtn) {
+      listPhoneNumbersBtn.addEventListener('click', async function() {
+        try {
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.listPhoneNumbers(customerId, customerSecret);
+          
+          const resultDiv = document.getElementById('phoneListResult');
+          if (resultDiv) {
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;';
+          }
+        } catch (error) {
+          const resultDiv = document.getElementById('phoneListResult');
+          if (resultDiv) {
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all text-red-400';
+            resultDiv.style.cssText = 'max-width: 100%; overflow-wrap: break-word; word-wrap: break-word; box-sizing: border-box; width: 100%;';
+          }
+        }
+      });
+    }
+
+    // Phone Number Management Event Handlers (Combined)
+    const importPhoneNumberBtn = document.getElementById('importPhoneNumberBtn');
+    if (importPhoneNumberBtn) {
+      importPhoneNumberBtn.addEventListener('click', async function() {
+        try {
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          const phoneNumber = document.getElementById('phoneNumberInput').value.trim();
+          const country = document.getElementById('phoneCountryCode').value.trim();
+          const areaCode = document.getElementById('phoneAreaCode').value.trim();
+
+          if (!phoneNumber || !country || !areaCode) {
+            alert('Please fill in phone number, country code, and area code');
+            return;
+          }
+
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.importPhoneNumber(customerId, customerSecret, phoneNumber, country, areaCode);
+          
+          // Display JSON result
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto';
+          }
+        } catch (error) {
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs text-red-400 max-h-32 overflow-y-auto';
+          }
+        }
+      });
+    }
+
+    const getPhoneInfoBtn = document.getElementById('getPhoneInfoBtn');
+    if (getPhoneInfoBtn) {
+      getPhoneInfoBtn.addEventListener('click', async function() {
+        try {
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          const phoneNumber = document.getElementById('phoneNumberInput').value.trim();
+
+          if (!phoneNumber) {
+            alert('Please enter a phone number');
+            return;
+          }
+
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.getPhoneNumberInfo(customerId, customerSecret, phoneNumber);
+
+          // Display JSON result
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto';
+          }
+        } catch (error) {
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs text-red-400 max-h-32 overflow-y-auto';
+          }
+        }
+      });
+    }
+
+    const updatePhoneNumberBtn = document.getElementById('updatePhoneNumberBtn');
+    if (updatePhoneNumberBtn) {
+      updatePhoneNumberBtn.addEventListener('click', async function() {
+        try {
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          const phoneNumber = document.getElementById('phoneNumberInput').value.trim();
+          const updateDataStr = document.getElementById('phoneUpdateData').value.trim();
+
+          if (!phoneNumber) {
+            alert('Please enter a phone number');
+            return;
+          }
+
+          let updateData = {};
+          if (updateDataStr) {
+            try {
+              updateData = JSON.parse(updateDataStr);
+            } catch (e) {
+              alert('Invalid JSON in update data field');
+              return;
+            }
+          }
+
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.updatePhoneNumber(customerId, customerSecret, phoneNumber, updateData);
+          
+          // Display JSON result
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto';
+          }
+        } catch (error) {
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs text-red-400 max-h-32 overflow-y-auto';
+          }
+        }
+      });
+    }
+
+    const deletePhoneNumberBtn = document.getElementById('deletePhoneNumberBtn');
+    if (deletePhoneNumberBtn) {
+      deletePhoneNumberBtn.addEventListener('click', async function() {
+        try {
+          const { customerId, customerSecret, appId } = window.Utils.getStoredCredentials();
+          const phoneNumber = document.getElementById('phoneNumberInput').value.trim();
+
+          if (!phoneNumber) {
+            alert('Please enter a phone number');
+            return;
+          }
+
+          if (!confirm(`Are you sure you want to delete phone number ${phoneNumber}?`)) {
+            return;
+          }
+
+          const agoraAPI = new window.AgoraAPI(appId);
+          const result = await agoraAPI.deletePhoneNumber(customerId, customerSecret, phoneNumber);
+          
+          // Display JSON result
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = JSON.stringify(result, null, 2);
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs max-h-32 overflow-y-auto';
+          }
+        } catch (error) {
+          const resultDiv = document.getElementById('phoneNumberResult');
+          if (resultDiv) {
+            resultDiv.classList.remove('hidden');
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'mt-2 p-2 bg-gray-800 rounded text-xs text-red-400 max-h-32 overflow-y-auto';
+          }
+        }
+      });
+    }
+
+    // Copy button handlers
+    const copyCallHistoryBtn = document.getElementById('copyCallHistoryBtn');
+    if (copyCallHistoryBtn) {
+      copyCallHistoryBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const pre = document.getElementById('callHistoryResult');
+        const msg = document.getElementById('copyCallHistoryMsg');
+        if (pre && msg) {
+          let text = pre.innerText || pre.textContent;
+          text = text.replace(/Copied!\s*/, '');
+          navigator.clipboard.writeText(text.trim());
+          msg.classList.remove('hidden');
+          setTimeout(() => msg.classList.add('hidden'), 1200);
+        }
+      });
+    }
+
+    const copyPhoneListBtn = document.getElementById('copyPhoneListBtn');
+    if (copyPhoneListBtn) {
+      copyPhoneListBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const pre = document.getElementById('phoneListResult');
+        const msg = document.getElementById('copyPhoneListMsg');
+        if (pre && msg) {
+          let text = pre.innerText || pre.textContent;
+          text = text.replace(/Copied!\s*/, '');
+          navigator.clipboard.writeText(text.trim());
+          msg.classList.remove('hidden');
+          setTimeout(() => msg.classList.add('hidden'), 1200);
+        }
+      });
+    }
+
+    const copyCallStatusBtn = document.getElementById('copyCallStatusBtn');
+    if (copyCallStatusBtn) {
+      copyCallStatusBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const pre = document.getElementById('callStatusResult');
+        const msg = document.getElementById('copyCallStatusMsg');
+        if (pre && msg) {
+          let text = pre.innerText || pre.textContent;
+          text = text.replace(/Copied!\s*/, '');
+          navigator.clipboard.writeText(text.trim());
+          msg.classList.remove('hidden');
+          setTimeout(() => msg.classList.add('hidden'), 1200);
+        }
+      });
+    }
 
     // Camera configuration logic
     const cameraConfigModal = document.getElementById('cameraConfigModal');
@@ -1438,6 +2384,19 @@
     const mllmSettingsBtn = document.getElementById('mllmSettingsBtn');
     const mllmDrawer = document.getElementById('mllmDrawer');
     const mllmDrawerBackdrop = document.getElementById('mllmDrawerBackdrop');
+    const mllmVendor = document.getElementById('mllmVendor');
+    const vertexaiConfig = document.getElementById('vertexaiConfig');
+    
+    // Show/hide Vertex AI config based on vendor selection
+    if (mllmVendor && vertexaiConfig) {
+        mllmVendor.addEventListener('change', function() {
+            if (this.value === 'vertexai') {
+                vertexaiConfig.classList.remove('hidden');
+            } else {
+                vertexaiConfig.classList.add('hidden');
+            }
+        });
+    }
     const enableMllm = document.getElementById('enableMllm');
 
     // MLLM drawer functionality
@@ -1469,10 +2428,27 @@
 
     // Advanced Features Logic
     const enableRtm = document.getElementById('enableRtm');
+    const enableSal = document.getElementById('enableSal');
+    const salConfig = document.getElementById('salConfig');
     const dataChannel = document.getElementById('dataChannel');
     const rtmMetricsConfig = document.getElementById('rtmMetricsConfig');
     const parametersEnabled = document.getElementById('parametersEnabled');
     const clientRtmUid = document.getElementById('clientRtmUid');
+
+    // Handle SAL enable/disable
+    if (enableSal && salConfig) {
+      enableSal.addEventListener('change', function() {
+        if (this.checked) {
+          salConfig.classList.remove('hidden');
+        } else {
+          salConfig.classList.add('hidden');
+        }
+      });
+      // Initialize visibility
+      if (enableSal.checked) {
+        salConfig.classList.remove('hidden');
+      }
+    }
 
     // Handle MLLM enable/disable
     if (enableMllm) {
@@ -1617,6 +2593,43 @@
     }
 
     // Handle turn detection type changes
+    const interruptMode = document.getElementById('interruptMode');
+    const interruptKeywordsBlock = document.getElementById('interruptKeywordsBlock');
+    
+    // Show/hide interrupt keywords based on interrupt mode
+    if (interruptMode && interruptKeywordsBlock) {
+        const updateInterruptKeywordsVisibility = function() {
+            if (interruptMode.value === 'keywords') {
+                interruptKeywordsBlock.classList.remove('hidden');
+            } else {
+                interruptKeywordsBlock.classList.add('hidden');
+            }
+        };
+        interruptMode.addEventListener('change', updateInterruptKeywordsVisibility);
+        // Initialize visibility
+        updateInterruptKeywordsVisibility();
+    }
+    
+    // Prevent enabling both keywords mode and AIVAD (mutually exclusive)
+    const enableAivad = document.getElementById('enableAivad');
+    if (interruptMode && enableAivad) {
+        interruptMode.addEventListener('change', function() {
+            if (this.value === 'keywords' && enableAivad.checked) {
+                alert('Keywords interruption mode and AIVAD are mutually exclusive. AIVAD will be disabled.');
+                enableAivad.checked = false;
+            }
+        });
+        enableAivad.addEventListener('change', function() {
+            if (this.checked && interruptMode.value === 'keywords') {
+                alert('AIVAD and keywords interruption mode are mutually exclusive. Interrupt mode will be changed to "interrupt".');
+                interruptMode.value = 'interrupt';
+                if (interruptKeywordsBlock) {
+                    interruptKeywordsBlock.classList.add('hidden');
+                }
+            }
+        });
+    }
+    
     if (turnDetectionType) {
     turnDetectionType.addEventListener('change', function() {
       const isServerVad = this.value === 'server_vad';
@@ -1691,18 +2704,18 @@
     // Use already declared parametersEnabled
     const transcriptConfig = document.getElementById('transcriptConfig');
     if (parametersEnabled && transcriptConfig) {
-      parametersEnabled.addEventListener('change', function() {
-        if (this.checked) {
-          transcriptConfig.classList.remove('hidden');
-        } else {
-          transcriptConfig.classList.add('hidden');
-        }
-      });
-      // On load, set initial state
-      if (parametersEnabled.checked) {
+    parametersEnabled.addEventListener('change', function() {
+      if (this.checked) {
         transcriptConfig.classList.remove('hidden');
       } else {
         transcriptConfig.classList.add('hidden');
+      }
+    });
+    // On load, set initial state
+    if (parametersEnabled.checked) {
+      transcriptConfig.classList.remove('hidden');
+    } else {
+      transcriptConfig.classList.add('hidden');
       }
     }
 
@@ -1711,11 +2724,11 @@
       const setEl = document.getElementById(setId);
       const valueEl = document.getElementById(valueId);
       if (setEl && valueEl) {
-        setEl.addEventListener('change', function() {
-          valueEl.disabled = !this.checked;
-        });
-        // On load
-        valueEl.disabled = !setEl.checked;
+      setEl.addEventListener('change', function() {
+        valueEl.disabled = !this.checked;
+      });
+      // On load
+      valueEl.disabled = !setEl.checked;
       }
     }
     setupTranscriptSet('transcriptEnableSet', 'transcriptEnable');
@@ -1726,22 +2739,39 @@
     // RTM Metrics show/hide logic
     // Use already declared enableRtm and rtmMetricsConfig
     if (enableRtm && rtmMetricsConfig) {
-      enableRtm.addEventListener('change', function() {
-        if (this.checked) {
-          rtmMetricsConfig.classList.remove('hidden');
-        } else {
-          rtmMetricsConfig.classList.add('hidden');
+    enableRtm.addEventListener('change', function() {
+      if (this.checked) {
+        rtmMetricsConfig.classList.remove('hidden');
+      } else {
+        rtmMetricsConfig.classList.add('hidden');
           const enableMetrics = document.getElementById('enableMetrics');
           const enableErrorMessage = document.getElementById('enableErrorMessage');
           if (enableMetrics) enableMetrics.checked = false;
           if (enableErrorMessage) enableErrorMessage.checked = false;
+      }
+    });
+    // On load
+    if (enableRtm.checked) {
+      rtmMetricsConfig.classList.remove('hidden');
+    } else {
+      rtmMetricsConfig.classList.add('hidden');
+      }
+    }
+    
+    // Farewell config show/hide logic
+    const farewellGracefulEnabled = document.getElementById('farewellGracefulEnabled');
+    const farewellConfigFields = document.getElementById('farewellConfigFields');
+    if (farewellGracefulEnabled && farewellConfigFields) {
+      farewellGracefulEnabled.addEventListener('change', function() {
+        if (this.checked) {
+          farewellConfigFields.classList.remove('hidden');
+        } else {
+          farewellConfigFields.classList.add('hidden');
         }
       });
-      // On load
-      if (enableRtm.checked) {
-        rtmMetricsConfig.classList.remove('hidden');
-      } else {
-        rtmMetricsConfig.classList.add('hidden');
+      // Initialize visibility
+      if (farewellGracefulEnabled.checked) {
+        farewellConfigFields.classList.remove('hidden');
       }
     }
 
@@ -1766,11 +2796,11 @@
       const setEl = document.getElementById(setId);
       const fieldEl = document.getElementById(fieldId);
       if (setEl && fieldEl) {
-        setEl.addEventListener('change', function() {
-          fieldEl.disabled = !this.checked;
-        });
-        // On load
-        fieldEl.disabled = !setEl.checked;
+      setEl.addEventListener('change', function() {
+        fieldEl.disabled = !this.checked;
+      });
+      // On load
+      fieldEl.disabled = !setEl.checked;
       }
     }
     // List of [setId, fieldId] pairs
@@ -1803,7 +2833,7 @@
         if (expBaseUrl) {
           expBaseUrl.value = '';
         }
-      });
+    });
     }
 
     // Cancel button
@@ -1814,7 +2844,7 @@
         if (experimentalFeaturesModal) {
           experimentalFeaturesModal.classList.add('hidden');
         }
-      });
+    });
     }
 
     // Add drag prevention to experimental features modal
@@ -1863,7 +2893,7 @@
         if (agoraTokenModal) {
           agoraTokenModal.classList.add('hidden');
         }
-      });
+    });
     }
 
     // Close Agora token modal when clicking outside
@@ -2087,12 +3117,12 @@
         if (enableRtmCheck && enableRtmCheck.checked) {
           agentRtmUidElement.value = agoraRtcUidElement.value;
           agentRtmUidElement.dataset.lastRtcUid = agoraRtcUidElement.value;
-        }
-      });
+      }
+    });
     }
     // On load
     if (enableRtmElement) {
-      updateAgentRtmUidVisibility();
+    updateAgentRtmUidVisibility();
     }
   });
   </script>
@@ -2570,7 +3600,7 @@
             <label for="enableSubtitles" class="text-sm">Enable Live Subtitles</label>
             <div class="tooltip">Enable real-time transcription of audio conversations. Shows subtitles during the conversation.</div>
           </div>
-          <div class="flex space-x-2">
+          <!-- <div class="flex space-x-2">
             <div class="has-tooltip relative">
               <button id="diagnoseTranscription" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
                 Diagnose
@@ -2583,7 +3613,7 @@
               </button>
               <div class="tooltip">Test the transcription system with sample audio</div>
             </div>
-          </div>
+          </div> -->
         </div>
 
         <!-- ASR Configuration -->
@@ -2598,6 +3628,12 @@
                 <option value="ares">ARES (Default)</option>
                 <option value="microsoft">Microsoft</option>
                 <option value="deepgram">Deepgram</option>
+                <option value="openai">OpenAI (Beta)</option>
+                <option value="speechmatics">Speechmatics</option>
+                <option value="assemblyai">AssemblyAI (Beta)</option>
+                <option value="amazon">Amazon Transcribe (Beta)</option>
+                <option value="google">Google (Beta)</option>
+                <option value="custom">Custom</option>
               </select>
               <div class="tooltip">Select the Automatic Speech Recognition (ASR) vendor to use for speech recognition.</div>
             </div>
@@ -2705,6 +3741,197 @@
                 <div class="tooltip">The speech recognition model to use (e.g., nova-2, nova, enhanced, base).</div>
               </div>
 
+            </div>
+          </div>
+          
+          <!-- OpenAI ASR Configuration -->
+          <div id="openaiAsrConfig" class="hidden mt-4">
+            <h4 class="text-sm font-semibold mb-2">OpenAI ASR Settings (Beta)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="has-tooltip relative">
+                <input
+                  id="openaiAsrKey"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="OpenAI API Key (Required)"
+                />
+                <div class="tooltip">API key for OpenAI ASR service.</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Speechmatics ASR Configuration -->
+          <div id="speechmaticsAsrConfig" class="hidden mt-4">
+            <h4 class="text-sm font-semibold mb-2">Speechmatics ASR Settings</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="has-tooltip relative">
+                <input
+                  id="speechmaticsAsrKey"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Speechmatics API Key (Required)"
+                />
+                <div class="tooltip">API key for Speechmatics ASR service.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="speechmaticsAsrLanguage"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Language Code (e.g., en)"
+                  value="en"
+                />
+                <div class="tooltip">The language code to use for transcription (e.g., en for English).</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- AssemblyAI ASR Configuration -->
+          <div id="assemblyaiAsrConfig" class="hidden mt-4">
+            <h4 class="text-sm font-semibold mb-2">AssemblyAI ASR Settings (Beta)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="has-tooltip relative">
+                <input
+                  id="assemblyaiAsrKey"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="AssemblyAI API Key (Required)"
+                />
+                <div class="tooltip">API key for AssemblyAI ASR service.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="assemblyaiAsrLanguage"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Language Code (e.g., en-US)"
+                  value="en-US"
+                />
+                <div class="tooltip">The language code for speech recognition (e.g., en-US).</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Amazon Transcribe ASR Configuration -->
+          <div id="amazonAsrConfig" class="hidden mt-4">
+            <h4 class="text-sm font-semibold mb-2">Amazon Transcribe ASR Settings (Beta)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="has-tooltip relative">
+                <input
+                  id="amazonAsrRegion"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="AWS Region (Required, e.g., us-east-1)"
+                  value="us-east-1"
+                />
+                <div class="tooltip">The AWS region where the Transcribe service is hosted, for example, us-east-1, us-west-2, or eu-west-1.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="amazonAsrAccessKeyId"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="AWS Access Key ID (Required)"
+                />
+                <div class="tooltip">The AWS access key ID used for authentication. Get your access key from the AWS IAM Console.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="amazonAsrSecretAccessKey"
+                  type="password"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="AWS Secret Access Key (Required)"
+                />
+                <div class="tooltip">The AWS secret access key used for authentication. Get your secret key from the AWS IAM Console.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="amazonAsrLanguageCode"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Language Code (Required, e.g., en-US)"
+                  value="en-US"
+                />
+                <div class="tooltip">The language code for speech recognition, for example, en-US, es-US, or fr-FR.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="amazonAsrMediaSampleRateHz"
+                  type="number"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Media Sample Rate Hz (Optional, e.g., 16000)"
+                  value="16000"
+                />
+                <div class="tooltip">The sample rate in Hertz for the audio input, for example, 16000 or 8000.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <select
+                  id="amazonAsrMediaEncoding"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                >
+                  <option value="pcm" selected>pcm</option>
+                  <option value="opus">opus</option>
+                  <option value="flac">flac</option>
+                </select>
+                <div class="tooltip">The encoding format of the audio input, for example, pcm, opus, or flac.</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Google ASR Configuration -->
+          <div id="googleAsrConfig" class="hidden mt-4">
+            <h4 class="text-sm font-semibold mb-2">Google ASR Settings (Beta)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="has-tooltip relative">
+                <input
+                  id="googleAsrProjectId"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Google Cloud Project ID (Required)"
+                />
+                <div class="tooltip">The Google Cloud project ID where the Speech-to-Text API is enabled. Get your project ID from the Google Cloud Console.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="googleAsrLocation"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Location (Required, e.g., global)"
+                  value="global"
+                />
+                <div class="tooltip">The Google Cloud region where the speech service is hosted, for example, global, us-central1, or europe-west1.</div>
+              </div>
+              <div class="has-tooltip relative md:col-span-2">
+                <textarea
+                  id="googleAsrAdcCredentials"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="ADC Credentials JSON String (Required)"
+                  rows="4"
+                ></textarea>
+                <div class="tooltip">The Google Cloud service account credentials JSON string used for authentication. Get your credentials from the Google Cloud Console.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="googleAsrLanguage"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Language (Required, e.g., en-US)"
+                  value="en-US"
+                />
+                <div class="tooltip">The language code for speech recognition, for example, en-US, es-ES, or fr-FR.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <input
+                  id="googleAsrModel"
+                  class="w-full p-2 rounded bg-gray-600 text-white"
+                  placeholder="Model (Optional, e.g., long)"
+                  value="long"
+                />
+                <div class="tooltip">The recognition model to use.</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Custom ASR Configuration -->
+          <div id="customAsrConfig" class="hidden mt-4">
+            <h4 class="text-sm font-semibold mb-2">Custom ASR Settings</h4>
+            <div class="has-tooltip relative">
+              <textarea
+                id="customAsrJson"
+                class="w-full p-2 rounded bg-gray-600 text-white border border-gray-500 focus:border-blue-500 font-mono text-sm"
+                placeholder='Enter ASR configuration JSON (e.g., {"language": "auto", "params": {"api_key": "xxx", "language_hints": ["en", "es"], "model": "model-name-v2"}, "rtc_builtin": false, "vendor": "vendor-example"})'
+                rows="8"
+              ></textarea>
+              <div class="tooltip">Enter a valid JSON object for custom ASR configuration. This will populate the "asr" field in the agent config. The JSON should not include the outer "asr" wrapper - just the configuration object itself.</div>
             </div>
           </div>
         </div>
@@ -2845,6 +4072,32 @@
           />
           <div class="tooltip">Request style for chat completion (optional). Use 'openai' for OpenAI-compatible APIs or custom LLM. Possible values: openai, gemini, anthropic. Leave blank to omit.</div>
         </div>
+        <div class="has-tooltip relative">
+          <input
+            id="llmAccessKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="LLM Access Key (Optional, Amazon Bedrock only)"
+          />
+          <div class="tooltip">Access key for Amazon Bedrock LLM (optional). Only used when LLM vendor is Amazon Bedrock.</div>
+        </div>
+        <div class="has-tooltip relative">
+          <input
+            id="llmSecret"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="LLM Secret (Optional, Amazon Bedrock only)"
+            type="password"
+          />
+          <div class="tooltip">Secret key for Amazon Bedrock LLM (optional). Only used when LLM vendor is Amazon Bedrock.</div>
+        </div>
+        <div class="has-tooltip relative">
+          <textarea
+            id="llmHeaders"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="LLM Headers (Optional, Claude Anthropic only, JSON string)"
+            rows="3"
+          ></textarea>
+          <div class="tooltip">Headers for Claude Anthropic LLM (optional). Must be a JSON string, e.g., {"anthropic-version":"2023-06-01"}. Only used when LLM vendor is anthropic or claude.</div>
+        </div>
       </div>
     </div>
 
@@ -2863,6 +4116,13 @@
             <option value="cartesia">Cartesia (Beta)</option>
             <option value="openai">OpenAI (Beta)</option>
             <option value="humeai">Hume AI (Beta)</option>
+            <option value="rime">Rime (Beta)</option>
+            <!-- <option value="minimax">MiniMax</option> --> <!-- Not in Agora 2.0 official docs -->
+            <option value="fishaudio">Fish Audio (Beta)</option>
+            <option value="groq">Groq (Beta)</option>
+            <option value="google">Google (Beta)</option>
+            <!-- <option value="playht">PlayHT (Beta)</option> --> <!-- Not in Agora 2.0 official docs -->
+            <option value="amazon">Amazon Polly (Beta)</option>
           </select>
           <div class="tooltip">Select the Text-to-Speech vendor to use for voice output.</div>
         </div>
@@ -3222,6 +4482,274 @@
           <div class="tooltip">Trailing silence duration for Hume AI TTS (0-5000ms).</div>
         </div>
 
+        <!-- Rime TTS Settings -->
+        <div id="rimeTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="rimeTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Rime API Key (Required)"
+          />
+          <div class="tooltip">API key for Rime TTS service.</div>
+        </div>
+        <div id="rimeSpeakerBlock" class="has-tooltip relative hidden">
+          <input
+            id="rimeSpeaker"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Speaker (e.g., cove)"
+            value="cove"
+          />
+          <div class="tooltip">The speaker voice to use for TTS output.</div>
+        </div>
+        <div id="rimeModelIdBlock" class="has-tooltip relative hidden">
+          <input
+            id="rimeModelId"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Model ID (e.g., mistv2)"
+            value="mistv2"
+          />
+          <div class="tooltip">The Rime TTS model to use.</div>
+        </div>
+        
+        <!-- MiniMax TTS Settings - COMMENTED OUT: Not in Agora 2.0 official docs -->
+        <!-- <div id="minimaxTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="minimaxTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="MiniMax API Key (Required)"
+          />
+          <div class="tooltip">API key for MiniMax TTS service.</div>
+        </div>
+        <div id="minimaxGroupIdBlock" class="has-tooltip relative hidden">
+          <input
+            id="minimaxGroupId"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Group ID (Required)"
+          />
+          <div class="tooltip">The MiniMax group identifier.</div>
+        </div>
+        <div id="minimaxModelBlock" class="has-tooltip relative hidden">
+          <input
+            id="minimaxModel"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Model (e.g., speech-02-turbo)"
+            value="speech-02-turbo"
+          />
+          <div class="tooltip">The TTS model to use.</div>
+        </div>
+        <div id="minimaxVoiceIdBlock" class="has-tooltip relative hidden">
+          <input
+            id="minimaxVoiceId"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice ID (e.g., English_captivating_female1)"
+          />
+          <div class="tooltip">The voice style identifier to use.</div>
+        </div>
+        <div id="minimaxUrlBlock" class="has-tooltip relative hidden">
+          <input
+            id="minimaxUrl"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="WebSocket URL"
+            value="wss://api.minimax.io/ws/v1/t2a_v2"
+          />
+          <div class="tooltip">The WebSocket endpoint for streaming TTS output.</div>
+        </div> -->
+        
+        <!-- Fish Audio TTS Settings -->
+        <div id="fishaudioTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="fishaudioTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Fish Audio API Key (Required)"
+          />
+          <div class="tooltip">API key for Fish Audio TTS service.</div>
+        </div>
+        <div id="fishaudioReferenceIdBlock" class="has-tooltip relative hidden">
+          <input
+            id="fishaudioReferenceId"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice Model ID (Required)"
+          />
+          <div class="tooltip">The identifier of the voice model to use for speech synthesis.</div>
+        </div>
+        <div id="fishaudioBackendBlock" class="has-tooltip relative hidden">
+          <input
+            id="fishaudioBackend"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Backend (e.g., speech-1.5)"
+            value="speech-1.5"
+          />
+          <div class="tooltip">The backend model version to use.</div>
+        </div>
+        
+        <!-- Groq TTS Settings -->
+        <div id="groqTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="groqTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Groq API Key (Required)"
+          />
+          <div class="tooltip">API key for Groq TTS service.</div>
+        </div>
+        <div id="groqModelBlock" class="has-tooltip relative hidden">
+          <input
+            id="groqModel"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Model (e.g., playai-tts)"
+            value="playai-tts"
+          />
+          <div class="tooltip">The Groq TTS model to use.</div>
+        </div>
+        <div id="groqVoiceBlock" class="has-tooltip relative hidden">
+          <input
+            id="groqVoice"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice (e.g., Arista-PlayAI)"
+            value="Arista-PlayAI"
+          />
+          <div class="tooltip">The voice preset to use for speech synthesis.</div>
+        </div>
+        
+        <!-- Google TTS Settings -->
+        <div id="googleTtsCredentialsBlock" class="has-tooltip relative hidden">
+          <textarea
+            id="googleTtsCredentials"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Google Cloud Credentials JSON String (Required)"
+            rows="4"
+          ></textarea>
+          <div class="tooltip">The Google Cloud service account credentials JSON string used for authentication.</div>
+        </div>
+        <div id="googleVoiceNameBlock" class="has-tooltip relative hidden">
+          <input
+            id="googleVoiceName"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice Name (e.g., en-US-Chirp3-HD-Charon)"
+          />
+          <div class="tooltip">The name of the voice to use.</div>
+        </div>
+        <div id="googleSpeakingRateBlock" class="has-tooltip relative hidden">
+          <input
+            id="googleSpeakingRate"
+            type="number"
+            step="0.1"
+            min="0.25"
+            max="2.0"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Speaking Rate (Optional, 0.25-2.0)"
+            value="1.0"
+          />
+          <div class="tooltip">The speed of speech. Valid range is 0.25 to 2.0, where 1.0 is the normal speed.</div>
+        </div>
+        <div id="googleSampleRateBlock" class="has-tooltip relative hidden">
+          <input
+            id="googleSampleRate"
+            type="number"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Sample Rate (Optional, e.g., 24000)"
+            value="24000"
+          />
+          <div class="tooltip">The sample rate in Hertz for the audio output.</div>
+        </div>
+        
+        <!-- PlayHT TTS Settings - COMMENTED OUT: Not in Agora 2.0 official docs -->
+        <!-- <div id="playhtTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="playhtTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="PlayHT API Key (Required)"
+          />
+          <div class="tooltip">API key for PlayHT TTS service.</div>
+        </div>
+        <div id="playhtUserIdBlock" class="has-tooltip relative hidden">
+          <input
+            id="playhtUserId"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="User ID (Required)"
+          />
+          <div class="tooltip">The user ID associated with your PlayHT account.</div>
+        </div>
+        <div id="playhtVoiceEngineBlock" class="has-tooltip relative hidden">
+          <select
+            id="playhtVoiceEngine"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+          >
+            <option value="PlayDialog">PlayDialog</option>
+            <option value="Play3.0-mini">Play3.0-mini</option>
+            <option value="PlayHT2.0-turbo">PlayHT2.0-turbo</option>
+          </select>
+          <div class="tooltip">The voice engine to use for speech synthesis.</div>
+        </div>
+        <div id="playhtVoiceBlock" class="has-tooltip relative hidden">
+          <input
+            id="playhtVoice"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice ID (e.g., alex)"
+          />
+          <div class="tooltip">The voice ID to use for speech generation.</div>
+        </div>
+        <div id="playhtSpeedBlock" class="has-tooltip relative hidden">
+          <input
+            id="playhtSpeed"
+            type="number"
+            step="0.1"
+            min="0.1"
+            max="5.0"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Speed (Optional, 1.0 = normal)"
+            value="1.0"
+          />
+          <div class="tooltip">The speed of speech, where 1.0 is the normal speed.</div>
+        </div> -->
+        
+        <!-- Amazon Polly TTS Settings -->
+        <div id="amazonPollyAccessKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="amazonPollyAccessKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="AWS Access Key ID (Required)"
+          />
+          <div class="tooltip">The AWS access key ID used for authentication. Get your access key from the AWS IAM Console.</div>
+        </div>
+        <div id="amazonPollySecretKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="amazonPollySecretKey"
+            type="password"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="AWS Secret Access Key (Required)"
+          />
+          <div class="tooltip">The AWS secret access key used for authentication. Get your secret key from the AWS IAM Console.</div>
+        </div>
+        <div id="amazonPollyRegionBlock" class="has-tooltip relative hidden">
+          <input
+            id="amazonPollyRegion"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="AWS Region (Required, e.g., us-east-1)"
+            value="us-east-1"
+          />
+          <div class="tooltip">The AWS region where the Polly service is hosted, for example, us-east-1, us-west-2, or eu-west-1.</div>
+        </div>
+        <div id="amazonPollyVoiceBlock" class="has-tooltip relative hidden">
+          <input
+            id="amazonPollyVoice"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice ID (Required, e.g., Joanna)"
+            value="Joanna"
+          />
+          <div class="tooltip">The voice ID to use for speech synthesis, for example, Joanna, Matthew, or Ivy.</div>
+        </div>
+        <div id="amazonPollyEngineBlock" class="has-tooltip relative hidden">
+          <select
+            id="amazonPollyEngine"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+          >
+            <option value="neural" selected>neural</option>
+            <option value="standard">standard</option>
+            <option value="long-form">long-form</option>
+            <option value="generative">generative</option>
+          </select>
+          <div class="tooltip">The engine type to use for speech synthesis. Supported values: standard, neural, long-form, generative.</div>
+        </div>
+
         <!-- Skip Patterns Section -->
         <div class="has-tooltip relative">
           <label class="text-sm font-medium mb-2 block">Skip Patterns (Optional)</label>
@@ -3374,8 +4902,9 @@
             class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
           >
             <option value="openai">OpenAI</option>
+            <option value="vertexai">Google Gemini Live (Vertex AI)</option>
           </select>
-          <div class="tooltip">MLLM provider. Currently supports OpenAI Realtime API.</div>
+          <div class="tooltip">MLLM provider. Supports OpenAI Realtime API and Google Gemini Live.</div>
         </div>
         <div class="has-tooltip relative">
           <select
@@ -3384,7 +4913,63 @@
           >
             <option value="openai">OpenAI</option>
           </select>
-          <div class="tooltip">The request style for MLLM completion. Currently supports OpenAI Realtime API format.</div>
+          <div class="tooltip">The request style for MLLM completion. Use 'openai' for OpenAI-compatible APIs or Google Gemini Live.</div>
+        </div>
+        
+        <!-- Google Gemini Live (Vertex AI) Specific Settings -->
+        <div id="vertexaiConfig" class="hidden space-y-4">
+          <div class="has-tooltip relative">
+            <textarea
+              id="vertexaiAdcCredentials"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="ADC Credentials String (Base64-encoded Google Cloud credentials)"
+              rows="4"
+            ></textarea>
+            <div class="tooltip">Base64-encoded Google Cloud Application Default Credentials (ADC) JSON string.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="vertexaiProjectId"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Project ID (Required)"
+            />
+            <div class="tooltip">Your Google Cloud project ID for Vertex AI access.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="vertexaiLocation"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Location (e.g., us-central1)"
+            />
+            <div class="tooltip">The Google Cloud region hosting the Gemini Live model.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="vertexaiModel"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Model (e.g., gemini-live-2.5-flash-preview-native-audio-09-2025)"
+              value="gemini-live-2.5-flash-preview-native-audio-09-2025"
+            />
+            <div class="tooltip">The Gemini Live model identifier.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="vertexaiVoice"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Voice (e.g., Aoede)"
+              value="Aoede"
+            />
+            <div class="tooltip">The voice identifier for audio output (e.g., Aoede, Puck, Charon, Kore, Fenrir, Leda, Orus, Zephyr).</div>
+          </div>
+          <div class="has-tooltip relative">
+            <textarea
+              id="vertexaiInstructions"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Instructions (Optional - System instructions for the agent)"
+              rows="3"
+            ></textarea>
+            <div class="tooltip">System instructions that define the agent's behavior or tone.</div>
+          </div>
         </div>
         <div class="has-tooltip relative">
           <input
@@ -3411,7 +4996,7 @@
             <span class="flex items-center">
               <span>Advanced Features</span>
             </span>
-            <span class="text-sm">AIVAD, MLLM, RTM</span>
+            <span class="text-sm">AIVAD, MLLM, RTM, SAL</span>
           </button>
           <div id="advancedFeaturesConfig" class="mt-2 space-y-2">
             <div class="flex items-center space-x-4">
@@ -3425,6 +5010,32 @@
                 <span>Enable RTM</span>
                 <div class="tooltip">Enable Signaling (RTM) service for advanced functions like delivering custom information.</div>
               </label>
+              <label class="flex items-center has-tooltip relative">
+                <input type="checkbox" id="enableSal" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                <span>Enable SAL</span>
+                <div class="tooltip">Enable Selective Attention Locking (SAL) - Voice Print locking and recognition. Seamless locking in 10 seconds. No audio/data kept.</div>
+              </label>
+            </div>
+            <!-- SAL Configuration -->
+            <div id="salConfig" class="hidden mt-2 space-y-2">
+              <div class="has-tooltip relative">
+                <label class="text-sm">SAL Mode</label>
+                <select id="salMode" class="w-full p-2 rounded bg-gray-600">
+                  <option value="locking">Locking</option>
+                  <option value="recognition">Recognition</option>
+                </select>
+                <div class="tooltip">SAL mode: 'locking' for voice print locking, 'recognition' for voice recognition.<br><br><strong>Important:</strong> Recognition mode requires LLM vendor to be set to "custom" to process speaker information (vpids in metadata).</div>
+              </div>
+              <div class="has-tooltip relative">
+                <label class="text-sm">Sample URLs (Optional)</label>
+                <textarea
+                  id="salSampleUrls"
+                  class="w-full p-2 rounded bg-gray-600 text-white border border-gray-500 focus:border-blue-500"
+                  placeholder='JSON format: {"Tomas": "https://xxxxxx/tomas.pcm", "Jay": "https://xxxxxxx/jay.pcm"}'
+                  rows="3"
+                ></textarea>
+                <div class="tooltip">Sample URLs for voice locking/recognition. Must be a JSON object.<br><br><strong>Mode-specific requirements:</strong><br>• <strong>Locking mode:</strong> Can be empty (seamless mode - auto-recognition) OR 1-3 URLs (personalized mode - pre-registered voiceprints)<br>• <strong>Recognition mode:</strong> Must have 1 voiceprint URL (required, up to 1). <strong>Note:</strong> Requires LLM vendor set to "custom" to process speaker information via vpids in metadata.<br><br><strong>When providing URLs:</strong><br>• Do NOT use "unknown" as a voiceprint name (reserved keyword)<br>• Quantity: Locking mode allows 1-3 URLs, Recognition mode allows up to 1 URL<br>• File size: Max 2 MB per file<br>• Duration: 10-15 seconds, with at least 8 seconds of effective audio (no silent segments)<br>• Format: 16kHz sampling rate, 16-bit depth, mono PCM audio<br>• File extension: Must be ".pcm"</div>
+              </div>
             </div>
           </div>
         </div>
@@ -3454,8 +5065,21 @@
                 <option value="interrupt">Interrupt (Stop and process input)</option>
                 <option value="append">Append (Complete current, then process)</option>
                 <option value="ignore">Ignore (Discard input)</option>
+                <option value="keywords">Keywords (Stop on keyword detection)</option>
+                <option value="adaptive">Adaptive (Dynamic threshold adjustment)</option>
               </select>
-              <div class="tooltip">Sets the agent's behavior when human voice interrupts the agent while it is interacting. Only interrupt mode is supported when MLLM is enabled.</div>
+              <div class="tooltip">Sets the agent's behavior when human voice interrupts the agent while it is interacting. Only interrupt mode is supported when MLLM is enabled. Keyword mode and AIVAD are mutually exclusive.</div>
+            </div>
+            <div id="interruptKeywordsBlock" class="has-tooltip relative hidden">
+              <label class="text-sm">Interrupt Keywords</label>
+              <input
+                type="text"
+                id="interruptKeywords"
+                class="w-full p-2 rounded bg-gray-600 turn-field"
+                placeholder="Comma-separated keywords (e.g., stop, cancel, wait)"
+                maxlength="5000"
+              />
+              <div class="tooltip">Keywords that trigger interruption when keyword mode is enabled. Separate multiple keywords with commas. Maximum 128 keywords allowed.</div>
             </div>
 
             <!-- Turn Detection Parameters -->
@@ -3547,6 +5171,25 @@
                   <div class="tooltip">Specifies the silent prompt message. The message use depends on the value of the action parameter.</div>
                 </div>
                 <input type="text" id="silenceContent" class="p-1 rounded bg-gray-600 param-field" placeholder="Silence reminder message">
+              </div>
+            </div>
+
+            <!-- Farewell Configuration -->
+            <div class="mb-4">
+              <h4 class="text-sm font-semibold mb-2">Farewell Configuration</h4>
+              <div class="flex items-center space-x-4 mb-2">
+                <label class="flex items-center has-tooltip relative">
+                  <input type="checkbox" id="farewellGracefulEnabled" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                  <span>Enable Graceful Farewell</span>
+                  <div class="tooltip">Enable graceful farewell handling for the agent.</div>
+                </label>
+              </div>
+              <div id="farewellConfigFields" class="hidden">
+                <div class="has-tooltip relative">
+                  <label class="text-sm">Graceful Timeout (seconds)</label>
+                  <input type="number" id="farewellGracefulTimeout" class="w-full p-2 rounded bg-gray-600 param-field" placeholder="30" min="0" max="120">
+                  <div class="tooltip">Timeout in seconds for graceful farewell. Value range: [0, 120]. Default: 30 seconds.</div>
+                </div>
               </div>
             </div>
 

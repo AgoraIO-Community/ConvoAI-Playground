@@ -385,47 +385,16 @@ Note: Adjust parameters based on your LLM provider's API requirements.
 
 Agora supports multiple TTS vendors, each with different characteristics:
 
-**Microsoft Azure TTS**:
-
-- Vendor: `microsoft`
-- Region: `eastus` (or closest to your users)
-- Voice: `en-US-AriaNeural`
-- Rate: `1.0` (normal speed)
-- Volume: `80`
-- Characteristics: High-quality neural voices, wide language support, reliable performance
-
-**ElevenLabs TTS**:
-
-- Vendor: `elevenlabs`
-- API Key: Required
-- Model: `eleven_multilingual_v2` or `eleven_turbo_v2`
-- Voice ID: Specific voice identifier
-- Characteristics: Most natural-sounding speech, customizable voices, higher cost
-
-**Cartesia TTS**:
-
-- Vendor: `cartesia`
-- API Key: Required
-- Model: `sonic-2`
-- Voice: Object with `mode: "id"` and `id: "<voice_id>"`
-- Characteristics: Ultra-low latency, real-time streaming, excellent for conversational agents
-
-**OpenAI TTS**:
-
-- Vendor: `openai`
-- API Key: Required
-- Voice: `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`
-- Characteristics: High-quality neural synthesis, multiple voice options, OpenAI ecosystem integration
-
-**Hume AI TTS**:
-
-- Vendor: `humeai`
-- API Key: Required
-- Voice ID: Required (specific voice identifier)
-- Provider: `HUME_AI` (default)
-- Speed: Configurable speaking rate
-- Trailing Silence: Configurable trailing silence duration
-- Characteristics: Customizable speaking rate, emotional tone control, trailing silence management
+- [Microsoft Azure TTS](https://docs.agora.io/en/conversational-ai/models/tts/microsoft)
+- [ElevenLabs TTS](https://docs.agora.io/en/conversational-ai/models/tts/elevenlabs)
+- [Cartesia TTS](https://docs.agora.io/en/conversational-ai/models/tts/cartesia)
+- [OpenAI TTS](https://docs.agora.io/en/conversational-ai/models/tts/openai)
+- [Hume AI TTS](https://docs.agora.io/en/conversational-ai/models/tts/hume)
+- [Rime TTS (Beta)](https://docs.agora.io/en/conversational-ai/models/tts/rime)
+- [Fish Audio TTS (Beta)](https://docs.agora.io/en/conversational-ai/models/tts/fish-audio)
+- [Groq TTS (Beta)](https://docs.agora.io/en/conversational-ai/models/tts/groq)
+- [Google TTS (Beta)](https://docs.agora.io/en/conversational-ai/models/tts/google)
+- [Amazon Polly TTS (Beta)](https://docs.agora.io/en/conversational-ai/models/tts/amazon)
 
 For this example, we'll use Microsoft Azure TTS for its reliability and quality.
 
@@ -433,28 +402,14 @@ For this example, we'll use Microsoft Azure TTS for its reliability and quality.
 
 Agora supports multiple ASR vendors:
 
-**Agora ASR (ares)**:
-
-- Vendor: `ares`
-- Language: `en-US`
-- Characteristics: Built-in, no additional API keys required, zero setup overhead, integrated with Agora's infrastructure for optimal latency and reliability. Recommended for most production use cases.
-
-**Microsoft ASR**:
-
-- Vendor: `microsoft`
-- API Key: Required
-- Region: e.g., `eastus`
-- Language: `en-US` (extensive language support)
-- Characteristics: High accuracy, robust noise handling, accent-adaptive. Consider if you need extensive language support or have specific accuracy requirements.
-
-**Deepgram ASR**:
-
-- Vendor: `deepgram`
-- API Key: Required
-- URL: `wss://api.deepgram.com/v1/listen`
-- Model: `nova-2` (most accurate) or `nova` (faster)
-- Language: `en`
-- Characteristics: Lowest latency (50-150ms), excellent accuracy, real-time streaming. Consider if ultra-low latency is critical for your use case.
+- [Agora ASR (ares)](https://docs.agora.io/en/conversational-ai/models/asr/ares)
+- [Microsoft ASR](https://docs.agora.io/en/conversational-ai/models/asr/microsoft)
+- [Deepgram ASR](https://docs.agora.io/en/conversational-ai/models/asr/deepgram)
+- [OpenAI ASR (Beta)](https://docs.agora.io/en/conversational-ai/models/asr/openai)
+- [Speechmatics ASR](https://docs.agora.io/en/conversational-ai/models/asr/speechmatics)
+- [AssemblyAI ASR (Beta)](https://docs.agora.io/en/conversational-ai/models/asr/assembly-ai)
+- [Amazon Transcribe (Beta)](https://docs.agora.io/en/conversational-ai/models/asr/amazon)
+- [Google ASR (Beta)](https://docs.agora.io/en/conversational-ai/models/asr/google)
 
 Agora ASR is the recommended choice for most production deployments due to its seamless integration, zero configuration overhead, and reliable performance. Microsoft ASR and Deepgram are alternatives if you need specific features like extensive language support or ultra-low latency.
 
@@ -991,9 +946,9 @@ The code is modular. Swap LLM providers without touching the audio pipeline. Cha
 
 **LLM Providers**: OpenAI, Azure OpenAI, Google Gemini, Google Vertex AI, Anthropic Claude, Dify, custom endpoints
 
-**TTS Vendors**: Microsoft Azure, ElevenLabs, Cartesia, OpenAI, Hume AI
+**TTS Vendors**: Microsoft Azure, ElevenLabs, Cartesia, OpenAI, Hume AI, Rime (Beta), Fish Audio (Beta), Groq (Beta), Google (Beta), Amazon Polly (Beta)
 
-**ASR Vendors**: Agora (ARES with 36 languages), Microsoft Azure (100+ languages), Deepgram (50+ languages)
+**ASR Vendors**: Agora (ARES with 36 languages), Microsoft Azure (100+ languages with phrase list support), Deepgram (50+ languages), OpenAI (Beta), Speechmatics, AssemblyAI (Beta), Amazon Transcribe (Beta), Google (Beta), Custom
 
 **AI Avatars**: Akool (Beta), HeyGen (Alpha)
 

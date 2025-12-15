@@ -56,6 +56,24 @@ window.UI = class UI {
         if (elevenLabsVoiceSelect) {
             elevenLabsVoiceSelect.addEventListener("change", () => this.handleElevenLabsVoiceChange());
         }
+        
+        // Sarvam speaker change handler
+        const sarvamSpeakerSelect = document.getElementById("sarvamSpeaker");
+        if (sarvamSpeakerSelect) {
+            sarvamSpeakerSelect.addEventListener("change", () => this.handleSarvamSpeakerChange());
+        }
+        
+        // Geofence area change handler
+        const geofenceAreaSelect = document.getElementById("geofenceArea");
+        if (geofenceAreaSelect) {
+            geofenceAreaSelect.addEventListener("change", () => this.handleGeofenceAreaChange());
+        }
+        
+        // Geofence exclude change handler
+        const geofenceExcludeSelect = document.getElementById("geofenceExclude");
+        if (geofenceExcludeSelect) {
+            geofenceExcludeSelect.addEventListener("change", () => this.handleGeofenceExcludeChange());
+        }
 
         // Add parameter field button
         const addParamBtn = document.getElementById("addParamBtn");
@@ -74,6 +92,24 @@ window.UI = class UI {
         const saveCredsBtn = document.getElementById("saveCredsBtn");
         if (saveCredsBtn) {
             saveCredsBtn.addEventListener("click", () => this.saveCreds());
+        }
+
+        // Token generation buttons
+        const generateAgoraRtcTokenBtn = document.getElementById("generateAgoraRtcTokenBtn");
+        if (generateAgoraRtcTokenBtn) {
+            generateAgoraRtcTokenBtn.addEventListener("click", () => this.generateAgoraRtcToken());
+        }
+        const generateAvatarRtcTokenBtn = document.getElementById("generateAvatarRtcTokenBtn");
+        if (generateAvatarRtcTokenBtn) {
+            generateAvatarRtcTokenBtn.addEventListener("click", () => this.generateAvatarRtcToken());
+        }
+        const generateClientRtcTokenBtn = document.getElementById("generateClientRtcTokenBtn");
+        if (generateClientRtcTokenBtn) {
+            generateClientRtcTokenBtn.addEventListener("click", () => this.generateClientRtcToken());
+        }
+        const generateSipRtcTokenBtn = document.getElementById("generateSipRtcTokenBtn");
+        if (generateSipRtcTokenBtn) {
+            generateSipRtcTokenBtn.addEventListener("click", () => this.generateSipRtcToken());
         }
 
         // Volume widget (hidden in new layout)
@@ -792,10 +828,11 @@ window.UI = class UI {
     }
 
     openCredsModal() {
-        const { customerId, customerSecret, appId } = Utils.getStoredCredentials();
+        const { customerId, customerSecret, appId, appCertificate } = Utils.getStoredCredentials();
         document.getElementById("customerId").value = customerId || '';
         document.getElementById("customerSecret").value = customerSecret || '';
         document.getElementById("appId").value = appId || '';
+        document.getElementById("appCertificate").value = appCertificate || '';
         
         document.getElementById("credsModal").classList.remove("hidden");
     }
@@ -804,6 +841,7 @@ window.UI = class UI {
         const customerId = document.getElementById("customerId").value.trim();
         const customerSecret = document.getElementById("customerSecret").value.trim();
         const appId = document.getElementById("appId").value.trim();
+        const appCertificate = document.getElementById("appCertificate").value.trim();
 
         if (!customerId || !customerSecret || !appId) {
             alert("Please fill in all required fields");
@@ -811,7 +849,7 @@ window.UI = class UI {
         }
 
         try {
-            Utils.saveCredentials(customerId, customerSecret, appId);
+            Utils.saveCredentials(customerId, customerSecret, appId, appCertificate);
             
             document.getElementById("credsModal").classList.add("hidden");
             // Update the AgoraAPI instance with new appId
@@ -820,6 +858,150 @@ window.UI = class UI {
             this.updateBaseUrlIndicator();
         } catch (error) {
             alert(error.message);
+        }
+    }
+
+    async generateAgoraRtcToken() {
+        try {
+            const { appId, appCertificate } = Utils.getStoredCredentials();
+            if (!appId || !appCertificate) {
+                alert("Please set App ID and App Certificate in API Credentials first");
+                return;
+            }
+
+            const channelName = document.getElementById("agoraChannelName").value.trim();
+            if (!channelName) {
+                alert("Please enter a channel name in Agent Settings");
+                return;
+            }
+
+            const agoraRtcUid = document.getElementById("agoraRtcUid").value.trim();
+            if (!agoraRtcUid) {
+                alert("Please enter an Agora RTC UID");
+                return;
+            }
+
+            const token = await Utils.generateAgoraToken(
+                appId,
+                appCertificate,
+                channelName,
+                agoraRtcUid,
+                1 // PUBLISHER role
+            );
+
+            document.getElementById("agoraRtcToken").value = token;
+            alert("Token generated successfully!");
+        } catch (error) {
+            alert("Error generating token: " + error.message);
+            console.error("Token generation error:", error);
+        }
+    }
+
+    async generateAvatarRtcToken() {
+        try {
+            const { appId, appCertificate } = Utils.getStoredCredentials();
+            if (!appId || !appCertificate) {
+                alert("Please set App ID and App Certificate in API Credentials first");
+                return;
+            }
+
+            const channelName = document.getElementById("agoraChannelName").value.trim();
+            if (!channelName) {
+                alert("Please enter a channel name in Agent Settings");
+                return;
+            }
+
+            const avatarRtcUid = document.getElementById("avatarRtcUid").value.trim();
+            if (!avatarRtcUid) {
+                alert("Please enter an Avatar RTC UID");
+                return;
+            }
+
+            const token = await Utils.generateAgoraToken(
+                appId,
+                appCertificate,
+                channelName,
+                avatarRtcUid,
+                1 // PUBLISHER role
+            );
+
+            document.getElementById("avatarRtcToken").value = token;
+            alert("Token generated successfully!");
+        } catch (error) {
+            alert("Error generating token: " + error.message);
+            console.error("Token generation error:", error);
+        }
+    }
+
+    async generateClientRtcToken() {
+        try {
+            const { appId, appCertificate } = Utils.getStoredCredentials();
+            if (!appId || !appCertificate) {
+                alert("Please set App ID and App Certificate in API Credentials first");
+                return;
+            }
+
+            const channelName = document.getElementById("agoraChannelName").value.trim();
+            if (!channelName) {
+                alert("Please enter a channel name in Agent Settings");
+                return;
+            }
+
+            const clientRtcUid = document.getElementById("clientRtcUid").value.trim();
+            if (!clientRtcUid) {
+                alert("Please enter a Client RTC UID");
+                return;
+            }
+
+            const token = await Utils.generateAgoraToken(
+                appId,
+                appCertificate,
+                channelName,
+                clientRtcUid,
+                1 // PUBLISHER role
+            );
+
+            document.getElementById("clientRtcToken").value = token;
+            alert("Token generated successfully!");
+        } catch (error) {
+            alert("Error generating token: " + error.message);
+            console.error("Token generation error:", error);
+        }
+    }
+
+    async generateSipRtcToken() {
+        try {
+            const { appId, appCertificate } = Utils.getStoredCredentials();
+            if (!appId || !appCertificate) {
+                alert("Please set App ID and App Certificate in API Credentials first");
+                return;
+            }
+
+            const channelName = document.getElementById("agoraChannelName").value.trim();
+            if (!channelName) {
+                alert("Please enter a channel name in Agent Settings");
+                return;
+            }
+
+            const sipRtcUid = document.getElementById("outboundCallSipRtcUid").value.trim();
+            if (!sipRtcUid) {
+                alert("Please enter a SIP RTC UID");
+                return;
+            }
+
+            const token = await Utils.generateAgoraToken(
+                appId,
+                appCertificate,
+                channelName,
+                sipRtcUid,
+                1 // PUBLISHER role
+            );
+
+            document.getElementById("outboundCallSipRtcToken").value = token;
+            alert("Token generated successfully!");
+        } catch (error) {
+            alert("Error generating token: " + error.message);
+            console.error("Token generation error:", error);
         }
     }
 
@@ -996,6 +1178,7 @@ window.UI = class UI {
             "elevenLabsVoiceBlock", 
             "elevenLabsVoiceIdBlock",
             "elevenLabsTtsKeyBlock",
+            "elevenLabsBaseUrlBlock",
             "elevenLabsSampleRateBlock",
             "elevenLabsStabilityBlock",
             "elevenLabsSimilarityBoostBlock",
@@ -1009,6 +1192,7 @@ window.UI = class UI {
         ];
         const openaiBlocks = [
             "openaiTtsKeyBlock",
+            "openaiBaseUrlBlock",
             "openaiModelBlock",
             "openaiVoiceBlock",
             "openaiInstructionsBlock",
@@ -1050,14 +1234,23 @@ window.UI = class UI {
             "googleSpeakingRateBlock",
             "googleSampleRateBlock"
         ];
-        // COMMENTED OUT: Not in Agora 2.0 official docs
-        // const playhtBlocks = [
-        //     "playhtTtsKeyBlock",
-        //     "playhtUserIdBlock",
-        //     "playhtVoiceEngineBlock",
-        //     "playhtVoiceBlock",
-        //     "playhtSpeedBlock"
-        // ];
+        const playhtBlocks = [
+            "playhtTtsKeyBlock",
+            "playhtUserIdBlock",
+            "playhtVoiceEngineBlock",
+            "playhtVoiceBlock",
+            "playhtSpeedBlock"
+        ];
+        const sarvamBlocks = [
+            "sarvamTtsKeyBlock",
+            "sarvamSpeakerBlock",
+            "sarvamSpeakerIdBlock",
+            "sarvamLanguageCodeBlock",
+            "sarvamPitchBlock",
+            "sarvamPaceBlock",
+            "sarvamLoudnessBlock",
+            "sarvamSampleRateBlock"
+        ];
         const amazonPollyBlocks = [
             "amazonPollyAccessKeyBlock",
             "amazonPollySecretKeyBlock",
@@ -1137,13 +1330,19 @@ window.UI = class UI {
             }
         });
 
-        // COMMENTED OUT: Not in Agora 2.0 official docs
-        // playhtBlocks.forEach(block => {
-        //     const element = document.getElementById(block);
-        //     if (element) {
-        //         element.classList.toggle("hidden", vendor !== "playht");
-        //     }
-        // });
+        playhtBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "playht");
+            }
+        });
+
+        sarvamBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "sarvam");
+            }
+        });
 
         amazonPollyBlocks.forEach(block => {
             const element = document.getElementById(block);
@@ -1155,6 +1354,11 @@ window.UI = class UI {
         // Handle Microsoft language population when vendor changes to Microsoft
         if (vendor === "microsoft") {
             this.populateMicrosoftLangList();
+        }
+        
+        // Handle Sarvam speaker visibility when vendor changes to Sarvam
+        if (vendor === "sarvam") {
+            this.handleSarvamSpeakerChange();
         }
 
         // Check if AI Avatar is enabled and disable it if TTS is not configured
@@ -1176,6 +1380,80 @@ window.UI = class UI {
         
         const voiceSel = elevenLabsVoiceSelect.value;
         voiceIdBlk.classList.toggle("hidden", voiceSel !== "other");
+    }
+
+    handleSarvamSpeakerChange() {
+        const sarvamSpeakerSelect = document.getElementById("sarvamSpeaker");
+        const speakerIdBlk = document.getElementById("sarvamSpeakerIdBlock");
+        
+        if (!sarvamSpeakerSelect || !speakerIdBlk) {
+            console.warn('Sarvam TTS elements not found');
+            return;
+        }
+        
+        const speakerSel = sarvamSpeakerSelect.value;
+        speakerIdBlk.classList.toggle("hidden", speakerSel !== "other");
+    }
+
+    handleGeofenceAreaChange() {
+        const geofenceAreaSelect = document.getElementById("geofenceArea");
+        const geofenceAreaCustomBlock = document.getElementById("geofenceAreaCustomBlock");
+        const geofenceExcludeBlock = document.getElementById("geofenceExcludeBlock");
+        const geofenceExcludeCustomBlock = document.getElementById("geofenceExcludeCustomBlock");
+        
+        if (!geofenceAreaSelect) {
+            return;
+        }
+        
+        const areaValue = geofenceAreaSelect.value;
+        
+        // Show/hide custom area input
+        if (geofenceAreaCustomBlock) {
+            geofenceAreaCustomBlock.classList.toggle("hidden", areaValue !== "custom");
+        }
+        
+        // Show/hide exclude area dropdown (only when area is GLOBAL)
+        if (geofenceExcludeBlock) {
+            geofenceExcludeBlock.classList.toggle("hidden", areaValue !== "GLOBAL");
+        }
+        
+        // Hide exclude custom if exclude block is hidden
+        if (geofenceExcludeCustomBlock) {
+            if (areaValue !== "GLOBAL") {
+                geofenceExcludeCustomBlock.classList.add("hidden");
+            } else {
+                // Check if custom is selected in exclude
+                this.handleGeofenceExcludeChange();
+            }
+        }
+        
+        // Clear exclude selections if area is not GLOBAL
+        if (areaValue !== "GLOBAL" && geofenceExcludeBlock) {
+            const geofenceExcludeSelect = document.getElementById("geofenceExclude");
+            if (geofenceExcludeSelect) {
+                Array.from(geofenceExcludeSelect.options).forEach(option => {
+                    option.selected = false;
+                });
+            }
+            if (geofenceExcludeCustomBlock) {
+                const geofenceExcludeCustom = document.getElementById("geofenceExcludeCustom");
+                if (geofenceExcludeCustom) {
+                    geofenceExcludeCustom.value = "";
+                }
+            }
+        }
+    }
+
+    handleGeofenceExcludeChange() {
+        const geofenceExcludeSelect = document.getElementById("geofenceExclude");
+        const geofenceExcludeCustomBlock = document.getElementById("geofenceExcludeCustomBlock");
+        
+        if (!geofenceExcludeSelect || !geofenceExcludeCustomBlock) {
+            return;
+        }
+        
+        const excludeValue = geofenceExcludeSelect.value;
+        geofenceExcludeCustomBlock.classList.toggle("hidden", excludeValue !== "custom");
     }
 
     populateMicrosoftLangList() {

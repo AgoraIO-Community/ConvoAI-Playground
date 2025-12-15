@@ -4,17 +4,23 @@ window.Utils = class Utils {
         return {
             customerId: localStorage.getItem("customerId") || "",
             customerSecret: localStorage.getItem("customerSecret") || "",
-            appId: localStorage.getItem("appId") || ""
+            appId: localStorage.getItem("appId") || "",
+            appCertificate: localStorage.getItem("appCertificate") || ""
         };
     }
 
-    static saveCredentials(customerId, customerSecret, appId) {
+    static saveCredentials(customerId, customerSecret, appId, appCertificate = "") {
         if (!customerId || !customerSecret || !appId) {
             throw new Error("All credentials are required");
         }
         localStorage.setItem("customerId", customerId);
         localStorage.setItem("customerSecret", customerSecret);
         localStorage.setItem("appId", appId);
+        if (appCertificate) {
+            localStorage.setItem("appCertificate", appCertificate);
+        } else {
+            localStorage.removeItem("appCertificate");
+        }
     }
 
     static getFormData() {
@@ -40,8 +46,10 @@ window.Utils = class Utils {
             ttsKey = document.getElementById("groqTtsKey") ? document.getElementById("groqTtsKey").value.trim() : '';
         } else if (ttsVendor === "google") {
             ttsKey = document.getElementById("googleTtsCredentials") ? document.getElementById("googleTtsCredentials").value.trim() : '';
-        // } else if (ttsVendor === "playht") { // COMMENTED OUT: Not in Agora 2.0 official docs
-        //     ttsKey = document.getElementById("playhtTtsKey") ? document.getElementById("playhtTtsKey").value.trim() : '';
+        } else if (ttsVendor === "playht") {
+            ttsKey = document.getElementById("playhtTtsKey") ? document.getElementById("playhtTtsKey").value.trim() : '';
+        } else if (ttsVendor === "sarvam") {
+            ttsKey = document.getElementById("sarvamTtsKey") ? document.getElementById("sarvamTtsKey").value.trim() : '';
         } else if (ttsVendor === "amazon") {
             // Amazon Polly uses access key and secret key, not a single ttsKey
             // We'll handle this in buildAgentConfig
@@ -150,8 +158,13 @@ window.Utils = class Utils {
             llmStyle: document.getElementById("llmStyle") ? document.getElementById("llmStyle").value.trim() : '',
             ttsKey: ttsKey,
             gMsg: document.getElementById("gMsg").value.trim(),
+            greetingMode: document.getElementById("greetingMode") ? document.getElementById("greetingMode").value : "single_every",
             fMsg: document.getElementById("fMsg").value.trim(),
             sMsgContent: document.getElementById("sMsgContent").value.trim(),
+            geofenceArea: document.getElementById("geofenceArea") ? document.getElementById("geofenceArea").value : '',
+            geofenceAreaCustom: document.getElementById("geofenceAreaCustom") ? document.getElementById("geofenceAreaCustom").value.trim() : '',
+            geofenceExclude: document.getElementById("geofenceExclude") ? document.getElementById("geofenceExclude").value : '',
+            geofenceExcludeCustom: document.getElementById("geofenceExcludeCustom") ? document.getElementById("geofenceExcludeCustom").value.trim() : '',
             asrVendor: document.getElementById("asrVendor").value,
             vendor: ttsVendor,
             isStringUid: document.getElementById('enableStringUid').checked,
@@ -338,6 +351,42 @@ window.Utils = class Utils {
                 }
                 if (!openaiVoice) {
                     throw new Error('OpenAI Voice is required');
+                }
+            } else if (ttsVendor === 'playht') {
+                const playhtTtsKey = document.getElementById('playhtTtsKey').value.trim();
+                const playhtUserId = document.getElementById('playhtUserId').value.trim();
+                const playhtVoiceEngine = document.getElementById('playhtVoiceEngine').value.trim();
+                const playhtVoice = document.getElementById('playhtVoice').value.trim();
+                
+                if (!playhtTtsKey) {
+                    throw new Error('PlayHT API Key is required');
+                }
+                if (!playhtUserId) {
+                    throw new Error('PlayHT User ID is required');
+                }
+                if (!playhtVoiceEngine) {
+                    throw new Error('PlayHT Voice Engine is required');
+                }
+                if (!playhtVoice) {
+                    throw new Error('PlayHT Voice is required');
+                }
+            } else if (ttsVendor === 'sarvam') {
+                const sarvamTtsKey = document.getElementById('sarvamTtsKey').value.trim();
+                const sarvamSpeakerSelect = document.getElementById('sarvamSpeaker').value.trim();
+                const sarvamSpeakerId = document.getElementById('sarvamSpeakerId') ? document.getElementById('sarvamSpeakerId').value.trim() : '';
+                const sarvamLanguageCode = document.getElementById('sarvamLanguageCode').value.trim();
+                
+                if (!sarvamTtsKey) {
+                    throw new Error('Sarvam API Key is required');
+                }
+                if (sarvamSpeakerSelect === 'other' && !sarvamSpeakerId) {
+                    throw new Error('Sarvam Custom Speaker ID is required when "Custom" is selected');
+                }
+                if (sarvamSpeakerSelect !== 'other' && !sarvamSpeakerSelect) {
+                    throw new Error('Sarvam Speaker is required');
+                }
+                if (!sarvamLanguageCode) {
+                    throw new Error('Sarvam Language Code is required');
                 }
             }
 
@@ -846,6 +895,37 @@ window.Utils = class Utils {
             });
         } */
 
+        // Build geofence from dropdowns if provided
+        let geofence = null;
+        if (formData.geofenceArea && formData.geofenceArea !== "") {
+            // Determine the area value
+            let areaValue = formData.geofenceArea;
+            if (areaValue === "custom") {
+                if (!formData.geofenceAreaCustom || !formData.geofenceAreaCustom.trim()) {
+                    throw new Error('Custom area code is required when "Custom" is selected for geofence area');
+                }
+                areaValue = formData.geofenceAreaCustom.trim();
+            }
+            
+            geofence = {
+                area: areaValue
+            };
+            
+            // Add exclude_area only if area is GLOBAL and exclude is selected
+            if (areaValue === "GLOBAL" && formData.geofenceExclude && formData.geofenceExclude !== "") {
+                let excludeValue = formData.geofenceExclude;
+                
+                if (excludeValue === "custom") {
+                    if (!formData.geofenceExcludeCustom || !formData.geofenceExcludeCustom.trim()) {
+                        throw new Error('Custom exclude area code is required when "Custom" is selected for geofence exclude area');
+                    }
+                    excludeValue = formData.geofenceExcludeCustom.trim();
+                }
+                
+                geofence.exclude_area = excludeValue;
+            }
+        }
+
         const config = {
             name: formData.uniqueName,
             properties: {
@@ -855,6 +935,7 @@ window.Utils = class Utils {
                 remote_rtc_uids: remoteRtcUids,
                 enable_string_uid: formData.isStringUid,
                 idle_timeout: idleTimeout,
+                ...(geofence ? { geofence: geofence } : {}),
                 ...(formData.enableRtm && formData.agentRtmUid ? { agent_rtm_uid: formData.agentRtmUid } : {}),
                 ...(Object.keys(advancedFeatures).length > 0 ? { advanced_features: advancedFeatures } : {}),
                 ...(sal ? { sal: sal } : {}),
@@ -872,6 +953,11 @@ window.Utils = class Utils {
                         ...(formData.llmStyle ? { style: formData.llmStyle } : {}),
                         system_messages: systemMessages,
                         greeting_message: formData.gMsg,
+                        ...(formData.greetingMode && formData.greetingMode !== "single_every" ? {
+                            greeting_configs: {
+                                mode: formData.greetingMode
+                            }
+                        } : {}),
                         failure_message: formData.fMsg,
                         max_history: 32,
                         input_modalities: formData.inputModalities,
@@ -983,6 +1069,7 @@ window.Utils = class Utils {
                     ...(skip_patterns ? { skip_patterns } : {}),
                     params: {
                         key: document.getElementById("elevenLabsTtsKey").value,
+                        ...(document.getElementById("elevenLabsBaseUrl")?.value ? { base_url: document.getElementById("elevenLabsBaseUrl").value.trim() } : {}),
                         model_id: modelId,
                         voice_id: finalVoiceId,
                         ...(document.getElementById("elevenLabsSampleRate")?.value ? { sample_rate: parseInt(document.getElementById("elevenLabsSampleRate").value, 10) } : {}),
@@ -1011,6 +1098,7 @@ window.Utils = class Utils {
                     ...(skip_patterns ? { skip_patterns } : {}),
                     params: {
                         api_key: document.getElementById("openaiTtsKey").value,
+                        ...(document.getElementById("openaiBaseUrl")?.value ? { base_url: document.getElementById("openaiBaseUrl").value.trim() } : {}),
                         model: document.getElementById("openaiModel").value,
                         voice: document.getElementById("openaiVoice").value,
                         ...(document.getElementById("openaiInstructions")?.value ? { instructions: document.getElementById("openaiInstructions").value } : {}),
@@ -1093,18 +1181,48 @@ window.Utils = class Utils {
                         ...(Object.keys(audioConfig).length > 0 ? { AudioConfig: audioConfig } : {})
                     }
                 };
-            // } else if (formData.vendor === "playht") { // COMMENTED OUT: Not in Agora 2.0 official docs
-            //     config.properties.tts = {
-            //         vendor: "playht",
-            //         ...(skip_patterns ? { skip_patterns } : {}),
-            //         params: {
-            //             api_key: document.getElementById("playhtTtsKey").value,
-            //             user_id: document.getElementById("playhtUserId").value,
-            //             voice_engine: document.getElementById("playhtVoiceEngine").value,
-            //             voice: document.getElementById("playhtVoice").value,
-            //             ...(document.getElementById("playhtSpeed")?.value ? { speed: parseFloat(document.getElementById("playhtSpeed").value) } : {})
-            //         }
-            //     };
+            } else if (formData.vendor === "playht") {
+                config.properties.tts = {
+                    vendor: "playht",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: {
+                        api_key: document.getElementById("playhtTtsKey").value,
+                        user_id: document.getElementById("playhtUserId").value,
+                        voice_engine: document.getElementById("playhtVoiceEngine").value,
+                        voice: document.getElementById("playhtVoice").value,
+                        ...(document.getElementById("playhtSpeed")?.value ? { speed: parseFloat(document.getElementById("playhtSpeed").value) } : {})
+                    }
+                };
+            } else if (formData.vendor === "sarvam") {
+                const sarvamSpeakerSelect = document.getElementById("sarvamSpeaker").value;
+                const finalSpeaker = sarvamSpeakerSelect === "other" 
+                    ? document.getElementById("sarvamSpeakerId").value.trim()
+                    : sarvamSpeakerSelect;
+                
+                const sarvamParams = {
+                    api_subscription_key: document.getElementById("sarvamTtsKey").value,
+                    speaker: finalSpeaker,
+                    target_language_code: document.getElementById("sarvamLanguageCode").value
+                };
+                
+                if (document.getElementById("sarvamPitch")?.value) {
+                    sarvamParams.pitch = parseFloat(document.getElementById("sarvamPitch").value);
+                }
+                if (document.getElementById("sarvamPace")?.value) {
+                    sarvamParams.pace = parseFloat(document.getElementById("sarvamPace").value);
+                }
+                if (document.getElementById("sarvamLoudness")?.value) {
+                    sarvamParams.loudness = parseFloat(document.getElementById("sarvamLoudness").value);
+                }
+                if (document.getElementById("sarvamSampleRate")?.value) {
+                    sarvamParams.sample_rate = parseInt(document.getElementById("sarvamSampleRate").value, 10);
+                }
+                
+                config.properties.tts = {
+                    vendor: "sarvam",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: sarvamParams
+                };
             } else if (formData.vendor === "amazon") {
                 config.properties.tts = {
                     vendor: "amazon",
@@ -1121,5 +1239,45 @@ window.Utils = class Utils {
         }
 
         return config;
+    }
+
+    /**
+     * Generate Agora RTC + RTM token
+     * @param {string} appId - Agora App ID
+     * @param {string} appCertificate - Agora App Certificate
+     * @param {string} channelName - Channel name
+     * @param {string|number} userAccount - User account (UID)
+     * @param {number} role - Role (1 = PUBLISHER, 2 = SUBSCRIBER)
+     * @returns {Promise<string>} Generated token
+     */
+    static async generateAgoraToken(appId, appCertificate, channelName, userAccount, role = 1) {
+        if (!appId || !appCertificate) {
+            throw new Error("App ID and App Certificate are required to generate tokens");
+        }
+        if (!channelName) {
+            throw new Error("Channel name is required");
+        }
+        if (!userAccount) {
+            throw new Error("User account (UID) is required");
+        }
+
+        const TOKEN_EXPIRE = 1800; // 30 minutes in seconds
+        const PRIVILEGE_EXPIRE = 1800; // 30 minutes in seconds
+
+        try {
+            const token = await RtcTokenBuilder.buildTokenWithRtm(
+                appId,
+                appCertificate,
+                channelName,
+                userAccount.toString(),
+                role,
+                TOKEN_EXPIRE,
+                PRIVILEGE_EXPIRE
+            );
+            return token;
+        } catch (error) {
+            console.error("Error generating token:", error);
+            throw new Error("Failed to generate token: " + error.message);
+        }
     }
 } 

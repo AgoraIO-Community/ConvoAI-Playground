@@ -65,7 +65,143 @@ window.MediaProcessor = class MediaProcessor {
         drawWave();
     }
 
+    // Helper function to convert base64 string to Uint8Array
+    async base64ToUint8Array(string) {
+        const raw = window.atob(string);
+        const result = new Uint8Array(new ArrayBuffer(raw.length));
+        for (let i = 0; i < raw.length; i += 1) {
+            result[i] = raw.charCodeAt(i);
+        }
+        return result;
+    }
+
+    // Map numeric encryption mode to Agora SDK string format
+    getEncryptionModeString(modeNum) {
+        const modeMap = {
+            1: 'aes-128-xts',
+            2: 'aes-128-ecb',
+            3: 'aes-256-xts',
+            4: 'sm4-128-ecb',
+            5: 'aes-128-gcm',
+            6: 'aes-256-gcm',
+            7: 'aes-128-gcm2',
+            8: 'aes-256-gcm2'
+        };
+        return modeMap[modeNum] || null;
+    }
+
+    // Apply RTC encryption to client if encryption is configured
+    async applyRtcEncryption(client) {
+        console.log('🔐 applyRtcEncryption called - checking for encryption settings...');
+        
+        const encryptionMode = document.getElementById('rtcEncryptionMode');
+        const encryptionKey = document.getElementById('rtcEncryptionKey');
+        const encryptionSalt = document.getElementById('rtcEncryptionSalt');
+        
+        console.log('🔐 Form elements found:', {
+            encryptionMode: !!encryptionMode,
+            encryptionKey: !!encryptionKey,
+            encryptionSalt: !!encryptionSalt
+        });
+        
+        if (!encryptionMode || !encryptionKey) {
+            console.log('🔐 Encryption form elements not found - encryption will not be applied');
+            console.log('🔐 Make sure Agent Settings modal is accessible and encryption fields exist');
+            return; // No encryption configured
+        }
+        
+        const mode = encryptionMode.value;
+        const key = encryptionKey.value.trim();
+        
+        console.log('🔐 Reading encryption settings:', {
+            mode,
+            modeType: typeof mode,
+            hasKey: !!key,
+            keyLength: key ? key.length : 0,
+            keyPreview: key ? key.substring(0, 10) + '...' : 'empty',
+            hasSaltElement: !!encryptionSalt,
+            saltValue: encryptionSalt ? encryptionSalt.value.trim().substring(0, 10) + '...' : 'N/A'
+        });
+        
+        // If no encryption mode is selected (empty string), don't apply encryption
+        if (!mode || mode === '' || !key || key === '') {
+            console.log('🔐 No RTC encryption configured (mode or key is empty), skipping encryption setup');
+            console.log('🔐 Mode value:', mode, 'Key value:', key ? 'has value' : 'empty');
+            return;
+        }
+        
+        try {
+            const modeNum = parseInt(mode, 10);
+            
+            // Validate mode
+            if (isNaN(modeNum) || modeNum < 1 || modeNum > 8) {
+                console.warn('🔐 Invalid encryption mode:', mode);
+                return;
+            }
+            
+            // Convert numeric mode to Agora SDK string format
+            const modeString = this.getEncryptionModeString(modeNum);
+            if (!modeString) {
+                console.warn('🔐 Unknown encryption mode:', modeNum);
+                return;
+            }
+            
+            // Use key directly (max 31 characters, no conversion needed)
+            // Validate key length
+            if (key.length > 31) {
+                console.warn('🔐 Encryption key exceeds 31 characters, truncating');
+                key = key.substring(0, 31);
+            }
+            
+            console.log('🔐 Encryption config:', {
+                modeNum,
+                modeString,
+                keyLength: key.length,
+                hasSalt: modeNum === 7 || modeNum === 8
+            });
+            
+            // For GCM2 modes (7 and 8), salt is required
+            if (modeNum === 7 || modeNum === 8) {
+                const salt = encryptionSalt ? encryptionSalt.value.trim() : '';
+                if (!salt || salt === '') {
+                    console.warn('🔐 Encryption salt is required for GCM2 modes (7 and 8)');
+                    return;
+                }
+                
+                const saltArray = await this.base64ToUint8Array(salt);
+                console.log('🔐 Setting RTC encryption (GCM2): mode', modeString, 'salt length:', saltArray.length);
+                console.log('🔐 About to call client.setEncryptionConfig with:', {
+                    mode: modeString,
+                    secretLength: key.length,
+                    saltLength: saltArray.length
+                });
+                await client.setEncryptionConfig(modeString, key, saltArray);
+                console.log('🔐 client.setEncryptionConfig called successfully (GCM2)');
+            } else {
+                console.log('🔐 Setting RTC encryption: mode', modeString);
+                console.log('🔐 About to call client.setEncryptionConfig with:', {
+                    mode: modeString,
+                    secretLength: key.length
+                });
+                await client.setEncryptionConfig(modeString, key);
+                console.log('🔐 client.setEncryptionConfig called successfully');
+            }
+            
+            console.log('🔐 RTC encryption applied successfully');
+        } catch (error) {
+            console.error('🔐 Error applying RTC encryption:', error);
+            console.error('🔐 Error details:', {
+                message: error.message,
+                stack: error.stack,
+                mode,
+                keyLength: key ? key.length : 0
+            });
+            throw new Error(`Failed to apply RTC encryption: ${error.message}`);
+        }
+    }
+
     async joinChannel(appId, channelName, token, uid, subtitleManager = null, agentId = null) {
+        console.log('🔵🔵🔵 JOIN CHANNEL CALLED - Starting join process...');
         this.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
         this.appId = appId; // Store appId for later use
         this.subtitleManager = subtitleManager;
@@ -73,6 +209,20 @@ window.MediaProcessor = class MediaProcessor {
         // Store the requested UID initially (will be updated with actual assigned UID)
         this.uid = uid;
         console.log('🔵 MediaProcessor: Initial UID for RTM initialization:', this.uid, '(original uid param:', uid, ')');
+        
+        // Apply RTC encryption if configured (must be done before joining)
+        console.log('🔵🔵🔵 ABOUT TO CALL applyRtcEncryption...');
+        try {
+            console.log('🔵 MediaProcessor: About to apply RTC encryption...');
+            await this.applyRtcEncryption(this.client);
+            console.log('🔵 MediaProcessor: RTC encryption application completed');
+        } catch (error) {
+            console.error('🔵 MediaProcessor: Error in applyRtcEncryption:', error);
+            console.error('🔵 MediaProcessor: Error stack:', error.stack);
+            // Don't throw - allow join to proceed even if encryption fails
+            // User will see the error in console and can fix it
+        }
+        console.log('🔵🔵🔵 CONTINUING WITH JOIN AFTER ENCRYPTION...');
         
         // Listen for join success to capture the actual assigned UID
         this.client.on("user-joined", (user) => {
@@ -175,24 +325,61 @@ window.MediaProcessor = class MediaProcessor {
                 encoderConfig: "music_standard"
             };
             
-            // Only add microphoneId if it's actually set and not empty
+            // Validate device ID exists before using it
+            let useDeviceId = false;
             if (micId && micId.trim() !== '') {
-                audioConfig.microphoneId = micId;
+                try {
+                    // Check if the device still exists
+                    const devices = await AgoraRTC.getDevices();
+                    const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                    const deviceExists = audioInputs.some(device => device.deviceId === micId);
+                    
+                    if (deviceExists) {
+                        audioConfig.microphoneId = micId;
+                        useDeviceId = true;
+                    } else {
+                        console.warn('Stored microphone device ID no longer available, using default device');
+                        // Clear invalid device ID from localStorage
+                        localStorage.removeItem('selectedMicrophoneId');
+                    }
+                } catch (deviceCheckError) {
+                    console.warn('Could not verify device availability, will try with stored ID:', deviceCheckError);
+                    // If we can't check devices, still try with the stored ID
+                    audioConfig.microphoneId = micId;
+                    useDeviceId = true;
+                }
             }
             
             try {
                 this.localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack(audioConfig);
+                console.log('Audio track created successfully', useDeviceId ? `with device ID: ${micId}` : 'with default device');
             } catch (error) {
-                console.error('Failed to create audio track with selected device:', error);
+                console.error('Failed to create audio track with', useDeviceId ? 'selected device' : 'default device', ':', error);
                 
-                // Fallback: try without specifying microphoneId
-                try {
-                    this.localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-                        encoderConfig: "music_standard"
-                    });
-                } catch (fallbackError) {
-                    console.error('Failed to create audio track with fallback:', fallbackError);
-                    throw fallbackError;
+                // If we used a device ID and it failed, clear it and try again
+                if (useDeviceId) {
+                    console.log('Clearing invalid device ID and retrying with default device');
+                    localStorage.removeItem('selectedMicrophoneId');
+                    
+                    try {
+                        this.localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+                            encoderConfig: "music_standard"
+                        });
+                        console.log('Audio track created successfully with default device after clearing invalid ID');
+                    } catch (fallbackError) {
+                        console.error('Failed to create audio track with fallback:', fallbackError);
+                        // Provide more helpful error message
+                        if (fallbackError.message && fallbackError.message.includes('getUserMedia')) {
+                            throw new Error('Failed to access microphone. Please check your browser permissions and ensure a microphone is connected.');
+                        }
+                        throw fallbackError;
+                    }
+                } else {
+                    // If default device also failed, provide helpful error
+                    if (error.message && error.message.includes('getUserMedia')) {
+                        throw new Error('Failed to access microphone. Please check your browser permissions and ensure a microphone is connected.');
+                    }
+                    throw error;
                 }
             }
         }

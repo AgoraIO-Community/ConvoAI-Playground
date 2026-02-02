@@ -60,8 +60,10 @@ window.Utils = class Utils {
         const remoteRtcUids = document.getElementById("remoteRtcUids").value.trim();
         const idleTimeout = document.getElementById("idleTimeout").value.trim();
         
+        // Deprecated features (pre-v2.4) vs v2.4 turn detection
+        const useDeprecatedFeatures = document.getElementById("deprecatedFeatures") ? document.getElementById("deprecatedFeatures").checked : true;
         // Get advanced features
-        const enableAivad = document.getElementById("enableAivad").checked;
+        const enableAivad = document.getElementById("enableAivad") ? document.getElementById("enableAivad").checked : false;
         const enableMllm = document.getElementById("enableMllm").checked;
         const enableRtm = document.getElementById("enableRtm").checked;
         const enableSal = document.getElementById("enableSal") ? document.getElementById("enableSal").checked : false;
@@ -160,6 +162,10 @@ window.Utils = class Utils {
             gMsg: document.getElementById("gMsg").value.trim(),
             greetingMode: document.getElementById("greetingMode") ? document.getElementById("greetingMode").value : "single_every",
             fMsg: document.getElementById("fMsg").value.trim(),
+            fillerWordsEnable: document.getElementById("fillerWordsEnable") ? document.getElementById("fillerWordsEnable").checked : false,
+            fillerWords: document.getElementById("fillerWords") ? document.getElementById("fillerWords").value.trim() : '',
+            fillerWordsResponseWaitMs: document.getElementById("fillerWordsResponseWaitMs") ? document.getElementById("fillerWordsResponseWaitMs").value : '1500',
+            fillerWordsSelectionRule: document.getElementById("fillerWordsSelectionRule") ? document.getElementById("fillerWordsSelectionRule").value : 'shuffle',
             sMsgContent: document.getElementById("sMsgContent").value.trim(),
             geofenceArea: document.getElementById("geofenceArea") ? document.getElementById("geofenceArea").value : '',
             geofenceAreaCustom: document.getElementById("geofenceAreaCustom") ? document.getElementById("geofenceAreaCustom").value.trim() : '',
@@ -177,6 +183,7 @@ window.Utils = class Utils {
             enableMllm: enableMllm,
             enableRtm: enableRtm,
             enableSal: enableSal,
+            enableTools: document.getElementById("enableTools") ? document.getElementById("enableTools").checked : false,
             // RTM UID
             agentRtmUid: document.getElementById('agentRtmUid') ? document.getElementById('agentRtmUid').value.trim() : '',
             
@@ -208,6 +215,23 @@ window.Utils = class Utils {
             turnCreateResponse: turnCreateResponse,
             turnInterruptResponse: turnInterruptResponse,
             turnEagerness: turnEagerness,
+            
+            // v2.4 turn detection (when Deprecated Features is off)
+            useDeprecatedFeatures: useDeprecatedFeatures,
+            turnV24Enabled: document.getElementById("turnDetectionV24Enabled") ? document.getElementById("turnDetectionV24Enabled").checked : false,
+            turnV24SpeechThreshold: document.getElementById("turnV24SpeechThreshold") ? document.getElementById("turnV24SpeechThreshold").value || null : null,
+            turnV24StartOfSpeechMode: document.getElementById("turnV24StartOfSpeechMode") ? document.getElementById("turnV24StartOfSpeechMode").value : 'vad',
+            turnV24SoSVadInterruptMs: document.getElementById("turnV24SoSVadInterruptMs") ? document.getElementById("turnV24SoSVadInterruptMs").value || null : null,
+            turnV24SoSVadSpeakingInterruptMs: document.getElementById("turnV24SoSVadSpeakingInterruptMs") ? document.getElementById("turnV24SoSVadSpeakingInterruptMs").value || null : null,
+            turnV24SoSPrefixPaddingMs: document.getElementById("turnV24SoSPrefixPaddingMs") ? document.getElementById("turnV24SoSPrefixPaddingMs").value || null : null,
+            turnV24SoSKeywordsInterruptMs: document.getElementById("turnV24SoSKeywordsInterruptMs") ? document.getElementById("turnV24SoSKeywordsInterruptMs").value || null : null,
+            turnV24SoSKeywordsPrefixMs: document.getElementById("turnV24SoSKeywordsPrefixMs") ? document.getElementById("turnV24SoSKeywordsPrefixMs").value || null : null,
+            turnV24SoSKeywords: document.getElementById("turnV24SoSKeywords") ? document.getElementById("turnV24SoSKeywords").value.trim() || null : null,
+            turnV24SoSDisabledStrategy: document.getElementById("turnV24SoSDisabledStrategy") ? document.getElementById("turnV24SoSDisabledStrategy").value : 'append',
+            turnV24EndOfSpeechMode: document.getElementById("turnV24EndOfSpeechMode") ? document.getElementById("turnV24EndOfSpeechMode").value : 'vad',
+            turnV24EoSSilenceMs: document.getElementById("turnV24EoSSilenceMs") ? document.getElementById("turnV24EoSSilenceMs").value || null : null,
+            turnV24EoSemanticSilenceMs: document.getElementById("turnV24EoSemanticSilenceMs") ? document.getElementById("turnV24EoSemanticSilenceMs").value || null : null,
+            turnV24EoSemanticMaxWaitMs: document.getElementById("turnV24EoSemanticMaxWaitMs") ? document.getElementById("turnV24EoSemanticMaxWaitMs").value || null : null,
             
             // Parameters
             parametersEnabled: parametersEnabled,
@@ -463,6 +487,67 @@ window.Utils = class Utils {
         return params;
     }
 
+    static getMcpServers() {
+        const servers = [];
+        const container = document.getElementById("mcp-servers-container");
+        if (!container) return servers;
+
+        const serverElements = container.children;
+
+        for (let element of serverElements) {
+            // Get server ID from element ID (format: mcp-server-0, mcp-server-1, etc.)
+            const serverId = element.id;
+            if (!serverId || !serverId.startsWith("mcp-server-")) continue;
+
+            const nameInput = document.getElementById(`${serverId}-name`);
+            const endpointInput = document.getElementById(`${serverId}-endpoint`);
+            const transportSelect = document.getElementById(`${serverId}-transport`);
+            const isToolCallSelect = document.getElementById(`${serverId}-isToolCallAvailable`);
+            const allowedToolsInput = document.getElementById(`${serverId}-allowedTools`);
+            const timeoutMsInput = document.getElementById(`${serverId}-timeoutMs`);
+            const headersInput = document.getElementById(`${serverId}-headers`);
+
+            if (nameInput && endpointInput && transportSelect && isToolCallSelect && allowedToolsInput) {
+                const name = nameInput.value.trim();
+                const endpoint = endpointInput.value.trim();
+                const transport = transportSelect.value;
+                const isToolCallAvailable = isToolCallSelect.value === "true";
+                const allowedToolsValue = allowedToolsInput.value.trim();
+
+                // Only add if name and endpoint are provided
+                if (name && endpoint) {
+                    let allowedTools = ["*"];
+                    if (allowedToolsValue && allowedToolsValue !== "") {
+                        allowedTools = allowedToolsValue.split(",").map(v => v.trim()).filter(v => v !== "");
+                    }
+                    // API: name only letters, numbers, dots, dashes (no spaces, no underscores)
+                    const sanitizedName = name.replace(/\s+/g, '-').replace(/_/g, '').replace(/[^a-zA-Z0-9.-]/g, '').slice(0, 48) || name.replace(/\s+/g, '-').replace(/_/g, '').slice(0, 48);
+                    const server = {
+                        name: sanitizedName,
+                        endpoint: endpoint,
+                        transport: transport,
+                        allowed_tools: allowedTools
+                    };
+                    if (timeoutMsInput && timeoutMsInput.value.trim() !== "") {
+                        const ms = parseInt(timeoutMsInput.value.trim(), 10);
+                        if (!isNaN(ms)) server.timeout_ms = Math.min(100000, Math.max(1000, ms));
+                    }
+                    if (headersInput && headersInput.value.trim() !== "") {
+                        try {
+                            const headers = JSON.parse(headersInput.value.trim());
+                            if (headers && typeof headers === "object" && !Array.isArray(headers)) {
+                                server.headers = headers;
+                            }
+                        } catch (e) { /* ignore invalid JSON */ }
+                    }
+                    servers.push(server);
+                }
+            }
+        }
+
+        return servers;
+    }
+
     static parseParamValue(type, value) {
         switch (type) {
             case 'array':
@@ -689,9 +774,6 @@ window.Utils = class Utils {
 
         // Prepare advanced features
         const advancedFeatures = {};
-        if (formData.enableAivad) {
-            advancedFeatures.enable_aivad = true;
-        }
         if (formData.enableMllm) {
             advancedFeatures.enable_mllm = true;
         }
@@ -700,6 +782,14 @@ window.Utils = class Utils {
         }
         if (formData.enableSal) {
             advancedFeatures.enable_sal = true;
+        }
+        // Enable tools if MCP servers are configured
+        if (formData.enableTools) {
+            advancedFeatures.enable_tools = true;
+        }
+        // AIVAD: only set advanced_features.enable_aivad when using deprecated config (v2.4 uses turn_detection.config.end_of_speech.mode=semantic)
+        if (formData.useDeprecatedFeatures && formData.enableAivad) {
+            advancedFeatures.enable_aivad = true;
         }
 
         // Prepare SAL config (optional - only included when enableSal is true)
@@ -805,9 +895,10 @@ window.Utils = class Utils {
             }
         }
 
-        // Prepare turn detection config
+        // Prepare turn detection config (deprecated vs v2.4)
         let turnDetection = null;
-        if (formData.turnDetectionEnabled) {
+        if (formData.useDeprecatedFeatures && formData.turnDetectionEnabled) {
+            // Deprecated structure (pre-v2.4)
             turnDetection = {
                 type: formData.turnDetectionType,
                 interrupt_mode: formData.turnInterruptMode
@@ -847,6 +938,60 @@ window.Utils = class Utils {
             if (formData.turnDetectionType === 'semantic_vad') {
                 turnDetection.eagerness = formData.turnEagerness;
             }
+        } else if (!formData.useDeprecatedFeatures && formData.turnV24Enabled) {
+            // v2.4 structure: mode + config (SoS / EoS)
+            const config = {};
+            if (formData.turnV24SpeechThreshold != null && formData.turnV24SpeechThreshold !== '') {
+                config.speech_threshold = parseFloat(formData.turnV24SpeechThreshold);
+            }
+            // Start of Speech (vad_config / keywords_config / disabled_config)
+            const sosMode = formData.turnV24StartOfSpeechMode || 'vad';
+            if (sosMode === 'vad') {
+                const vadConfig = {};
+                if (formData.turnV24SoSVadInterruptMs != null && formData.turnV24SoSVadInterruptMs !== '') {
+                    vadConfig.interrupt_duration_ms = parseInt(formData.turnV24SoSVadInterruptMs, 10);
+                }
+                if (formData.turnV24SoSVadSpeakingInterruptMs != null && formData.turnV24SoSVadSpeakingInterruptMs !== '') {
+                    vadConfig.speaking_interrupt_duration_ms = parseInt(formData.turnV24SoSVadSpeakingInterruptMs, 10);
+                }
+                if (formData.turnV24SoSPrefixPaddingMs != null && formData.turnV24SoSPrefixPaddingMs !== '') {
+                    vadConfig.prefix_padding_ms = parseInt(formData.turnV24SoSPrefixPaddingMs, 10);
+                }
+                config.start_of_speech = Object.keys(vadConfig).length > 0 ? { mode: 'vad', vad_config: vadConfig } : { mode: 'vad' };
+            } else if (sosMode === 'keywords') {
+                const keywordsConfig = {};
+                if (formData.turnV24SoSKeywordsInterruptMs != null && formData.turnV24SoSKeywordsInterruptMs !== '') {
+                    keywordsConfig.interrupt_duration_ms = parseInt(formData.turnV24SoSKeywordsInterruptMs, 10);
+                }
+                if (formData.turnV24SoSKeywordsPrefixMs != null && formData.turnV24SoSKeywordsPrefixMs !== '') {
+                    keywordsConfig.prefix_padding_ms = parseInt(formData.turnV24SoSKeywordsPrefixMs, 10);
+                }
+                if (formData.turnV24SoSKeywords) {
+                    const triggered_keywords = formData.turnV24SoSKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+                    if (triggered_keywords.length > 0) keywordsConfig.triggered_keywords = triggered_keywords;
+                }
+                config.start_of_speech = Object.keys(keywordsConfig).length > 0 ? { mode: 'keywords', keywords_config: keywordsConfig } : { mode: 'keywords' };
+            } else {
+                config.start_of_speech = { mode: 'disabled', disabled_config: { strategy: formData.turnV24SoSDisabledStrategy || 'append' } };
+            }
+            // End of Speech
+            const eosMode = formData.turnV24EndOfSpeechMode || 'vad';
+            if (eosMode === 'vad') {
+                config.end_of_speech = { mode: 'vad' };
+                if (formData.turnV24EoSSilenceMs != null && formData.turnV24EoSSilenceMs !== '') {
+                    config.end_of_speech.vad_config = { silence_duration_ms: parseInt(formData.turnV24EoSSilenceMs, 10) };
+                }
+            } else {
+                const semanticConfig = {};
+                if (formData.turnV24EoSemanticSilenceMs != null && formData.turnV24EoSemanticSilenceMs !== '') {
+                    semanticConfig.silence_duration_ms = parseInt(formData.turnV24EoSemanticSilenceMs, 10);
+                }
+                if (formData.turnV24EoSemanticMaxWaitMs != null && formData.turnV24EoSemanticMaxWaitMs !== '') {
+                    semanticConfig.max_wait_ms = parseInt(formData.turnV24EoSemanticMaxWaitMs, 10);
+                }
+                config.end_of_speech = Object.keys(semanticConfig).length > 0 ? { mode: 'semantic', semantic_config: semanticConfig } : { mode: 'semantic' };
+            }
+            turnDetection = { mode: 'default', config };
         }
 
         // Prepare parameters config
@@ -974,13 +1119,33 @@ window.Utils = class Utils {
                             }
                         } : {}),
                         failure_message: formData.fMsg,
+                        ...(formData.fillerWordsEnable && formData.fillerWords ? (() => {
+                            const phrases = formData.fillerWords.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                            if (phrases.length === 0) return {};
+                            const responseWaitMs = parseInt(formData.fillerWordsResponseWaitMs, 10) || 1500;
+                            const selectionRule = formData.fillerWordsSelectionRule || 'shuffle';
+                            return {
+                                filler_words: {
+                                    enable: true,
+                                    trigger: { mode: 'fixed_time', fixed_time_config: { response_wait_ms: Math.min(10000, Math.max(100, responseWaitMs)) } },
+                                    content: { mode: 'static', static_config: { phrases, selection_rule: selectionRule } }
+                                }
+                            };
+                        })() : {}),
                         max_history: 32,
                         input_modalities: formData.inputModalities,
                         output_modalities: formData.outputModalities,
                         params: {
                             model: formData.llmModel,
                             ...customParams
-                        }
+                        },
+                        ...(formData.enableTools ? (() => {
+                            const mcpServers = this.getMcpServers();
+                            if (mcpServers.length > 0) {
+                                return { mcp_servers: mcpServers };
+                            }
+                            return {};
+                        })() : {})
                     }
                 }),
                 ...(formData.enableMllm ? { // Include MLLM if enabled

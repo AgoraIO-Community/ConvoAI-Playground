@@ -8,6 +8,7 @@ window.UI = class UI {
         this.agoraAPI = null;
         this.subtitleManager = null;
         this.params = {};
+        this.mcpServers = {};
         this.lastAgentListCursor = null;
         this.agentListPageHistory = []; // History of accumulated results for back navigation
         this.agentListCurrentPageIndex = -1; // Current position in history (-1 = first page)
@@ -80,6 +81,23 @@ window.UI = class UI {
         if (addParamBtn) {
             addParamBtn.addEventListener("click", () => this.addParamField());
         }
+
+        // Enable Tools checkbox handler - use event delegation on document
+        // This works even if elements are added later
+        document.addEventListener("change", (e) => {
+            if (e.target.id === "enableTools") {
+                this.handleEnableToolsChange();
+            } else if (e.target.id === "fillerWordsEnable") {
+                this.handleFillerWordsEnableChange();
+            }
+        });
+        
+        
+        document.addEventListener("click", (e) => {
+            if (e.target.id === "addMcpServerBtn") {
+                this.addMcpServerField();
+            }
+        });
 
         // Setup message UI state management
         this.setupMessageUIState();
@@ -197,9 +215,6 @@ window.UI = class UI {
         const toggleCameraBtn = document.getElementById("toggleCameraBtn");
         if (toggleCameraBtn) {
             toggleCameraBtn.addEventListener("click", () => this.toggleCamera());
-            console.log("Camera button found and event listener added");
-        } else {
-            console.error("Camera button not found!");
         }
 
         // Message sending controls
@@ -315,7 +330,6 @@ window.UI = class UI {
                 cameraBtn.title = "Mute Camera";
                 cameraIcon.classList.remove("hidden");
                 cameraOffIcon.classList.add("hidden");
-                console.log("Camera unmuted");
                 
                 // Update camera preview visibility
                 if (this.mediaProcessor && this.mediaProcessor.updateCameraPreviewVisibility) {
@@ -331,7 +345,6 @@ window.UI = class UI {
                 cameraBtn.title = "Unmute Camera";
                 cameraIcon.classList.add("hidden");
                 cameraOffIcon.classList.remove("hidden");
-                console.log("Camera muted");
                 
                 // Update camera preview visibility
                 if (this.mediaProcessor && this.mediaProcessor.updateCameraPreviewVisibility) {
@@ -389,7 +402,6 @@ window.UI = class UI {
         const checkSubtitleManager = () => {
             if (window.subtitleManager && !this.subtitleManager) {
                 this.subtitleManager = window.subtitleManager;
-                console.log('Subtitle manager reference updated in UI');
             }
         };
         
@@ -721,7 +733,6 @@ window.UI = class UI {
             window.subtitleManager.updateChatHistoryDisplay();
         }
         
-        console.log('Added image to chat history:', messageData);
     }
 
     formatFileSize(bytes) {
@@ -734,8 +745,6 @@ window.UI = class UI {
 
     handleImageMessageResponse(message) {
         try {
-            console.log('=== IMAGE MESSAGE RESPONSE DEBUG ===');
-            console.log('Original message:', message);
             
             // The message parameter is already the parsed message object
             // Check if it's a message.info or message.error with context module
@@ -752,10 +761,8 @@ window.UI = class UI {
                     const height = imageInfo.height || imageInfo.dimensions?.height || imageInfo.h || 'unknown';
                     const size = imageInfo.size_bytes || imageInfo.size || imageInfo.file_size || imageInfo.bytes || 'unknown';
                     
-                    console.log('Extracted dimensions:', { width, height, size });
                     
                     const imageDetails = `📷 Image received: ${width}x${height} (${this.formatFileSize(size)})`;
-                    console.log('Final image details text:', imageDetails);
                     
                     // Instead of using UUID matching, update the most recent image message
                     this.updateMostRecentImageMessage(imageDetails, 'success');
@@ -770,9 +777,6 @@ window.UI = class UI {
                 const errorDetails = `❌ Image upload failed: ${errorMessage}`;
                 this.updateMostRecentImageMessage(errorDetails, 'error');
             } else {
-                console.log('❌ Message does not match expected format for image response');
-                console.log('Expected: object="message.info" and module="context"');
-                console.log('Got: object="' + message.object + '" and module="' + message.module + '"');
             }
         } catch (error) {
             console.error('Error handling image message response:', error);
@@ -781,14 +785,9 @@ window.UI = class UI {
     }
 
     updateMostRecentImageMessage(newText, status) {
-        console.log('=== UPDATE MOST RECENT IMAGE MESSAGE DEBUG ===');
-        console.log('New text:', newText);
-        console.log('Status:', status);
         
         // Find and update the most recent image message in chat history
         if (window.subtitleManager && window.subtitleManager.chatHistoryData) {
-            console.log('Chat history data length:', window.subtitleManager.chatHistoryData.length);
-            console.log('All messages:', window.subtitleManager.chatHistoryData.map(msg => ({ id: msg.id, type: msg.messageType, text: msg.text })));
             
             // Find the last image message in the chat history
             let messageIndex = -1;
@@ -796,27 +795,20 @@ window.UI = class UI {
                 const msg = window.subtitleManager.chatHistoryData[i];
                 if (msg.messageType === 'image') {
                     messageIndex = i;
-                    console.log('Found most recent image message at index:', i);
                     break;
                 }
             }
             
             if (messageIndex !== -1) {
                 const message = window.subtitleManager.chatHistoryData[messageIndex];
-                console.log('Original message:', message);
                 message.text = newText;
                 message.status = status;
-                console.log('Updated message:', message);
                 
                 // Update the display
                 window.subtitleManager.updateChatHistoryDisplay();
-                console.log(`✅ Successfully updated image message at index ${messageIndex} with status: ${status}`);
             } else {
-                console.log('❌ Could not find any image message to update');
-                console.log('Available messages:', window.subtitleManager.chatHistoryData.map(msg => ({ id: msg.id, type: msg.messageType, text: msg.text })));
             }
         } else {
-            console.log('❌ Subtitle manager or chat history data not available');
         }
     }
 
@@ -1096,13 +1088,11 @@ window.UI = class UI {
             
             if (videoTrackExists) {
                 cameraBtn.classList.remove("hidden");
-                console.log("Camera button shown - image input enabled and video track available");
                 
                 // Update message UI state when camera button is shown
                 this.updateMessageUIState();
             } else {
                 cameraBtn.classList.add("hidden");
-                console.log("Camera button hidden - image input enabled but no video track (camera permission likely denied)");
                 
                 // Show a user-friendly message about camera permission
                 if (imageInputEnabled) {
@@ -1110,7 +1100,6 @@ window.UI = class UI {
                 }
             }
         } else {
-            console.log("Camera button hidden - image input:", imageInputEnabled);
         }
     }
 
@@ -1593,6 +1582,166 @@ window.UI = class UI {
     removeParam(id) {
         document.getElementById(id).remove();
         delete this.params[id];
+    }
+
+    handleEnableToolsChange() {
+        const enableToolsCheckbox = document.getElementById("enableTools");
+        const mcpServersConfig = document.getElementById("mcpServersConfig");
+        
+        if (!enableToolsCheckbox || !mcpServersConfig) {
+            return;
+        }
+        
+        const isChecked = enableToolsCheckbox.checked;
+        
+        // Show the section when checked
+        if (isChecked) {
+            mcpServersConfig.classList.remove("hidden");
+            mcpServersConfig.style.display = "";
+        } else {
+            mcpServersConfig.classList.add("hidden");
+            mcpServersConfig.style.display = "none";
+        }
+    }
+
+    handleFillerWordsEnableChange() {
+        const fillerWordsEnable = document.getElementById("fillerWordsEnable");
+        const fillerWordsConfig = document.getElementById("fillerWordsConfig");
+        if (!fillerWordsEnable || !fillerWordsConfig) return;
+        fillerWordsConfig.classList.toggle("hidden", !fillerWordsEnable.checked);
+    }
+
+    addMcpServerField() {
+        const container = document.getElementById("mcp-servers-container");
+        if (!container) return;
+        
+        const serverId = "mcp-server-" + Object.keys(this.mcpServers).length;
+        
+        const div = document.createElement("div");
+        div.classList.add("bg-gray-800", "p-3", "rounded", "space-y-2");
+        div.id = serverId;
+        
+        div.innerHTML = `
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-semibold text-gray-300">MCP Server Configuration</span>
+                <button class="text-red-500 hover:text-red-700" title="Remove Server">❌</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div class="has-tooltip relative">
+                    <input type="text" placeholder="Name (e.g., MATH or Agora-Docs)" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600" id="${serverId}-name" maxlength="48">
+                    <div class="tooltip">MCP server name: only letters (a-z, A-Z), numbers (0-9), dots (.), and dashes (-). No spaces or underscores. Max 48 characters.</div>
+                </div>
+                <div class="has-tooltip relative">
+                    <input type="text" placeholder="Endpoint URL" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600" id="${serverId}-endpoint">
+                    <div class="tooltip">Endpoint URL for the MCP server. Must be a valid URL (e.g., https://example.endpoint.com/sse). This is where the MCP server is hosted.</div>
+                </div>
+                <div class="has-tooltip relative">
+                    <select class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600" id="${serverId}-transport">
+                        <option value="http">http</option>
+                        <option value="sse" selected>sse</option>
+                        <option value="streamable_http">streamable_http</option>
+                    </select>
+                    <div class="tooltip">Transport protocol for the MCP server. Options: http (standard HTTP), sse (Server-Sent Events), or streamable_http (streamable HTTP).</div>
+                </div>
+                <div class="has-tooltip relative">
+                    <select class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600" id="${serverId}-isToolCallAvailable">
+                        <option value="true" selected>true</option>
+                        <option value="false">false</option>
+                    </select>
+                    <div class="tooltip">Whether tool calls are available for this server. Set to "true" if the server supports tool calling, "false" otherwise.</div>
+                </div>
+                <div class="has-tooltip relative">
+                    <input type="number" placeholder="Timeout ms (1000–100000)" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600" id="${serverId}-timeoutMs" min="1000" max="100000" step="1000">
+                    <div class="tooltip">MCP server request timeout in milliseconds. Must be between 1000 and 100000. After timeout, the agent stops waiting and continues.</div>
+                </div>
+            </div>
+            <div class="has-tooltip relative">
+                <input type="text" placeholder="Allowed Tools (comma-separated, default: *)" value="*" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600" id="${serverId}-allowedTools">
+                <div class="tooltip">Comma-separated list of allowed tools for this server. Use "*" to allow all tools, or specify specific tool names separated by commas (e.g., "calculate,query,search").</div>
+            </div>
+            <div class="has-tooltip relative">
+                <textarea placeholder="Headers (optional, JSON object e.g. {\"Authorization\": \"Bearer xxx\"})" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600" id="${serverId}-headers" rows="2"></textarea>
+                <div class="tooltip">HTTP headers to include when requesting the MCP server (e.g. authentication). Must be valid JSON object.</div>
+            </div>
+        `;
+        
+        // Add event listeners
+        const nameInput = div.querySelector(`#${serverId}-name`);
+        const endpointInput = div.querySelector(`#${serverId}-endpoint`);
+        const transportSelect = div.querySelector(`#${serverId}-transport`);
+        const isToolCallSelect = div.querySelector(`#${serverId}-isToolCallAvailable`);
+        const allowedToolsInput = div.querySelector(`#${serverId}-allowedTools`);
+        const timeoutMsInput = div.querySelector(`#${serverId}-timeoutMs`);
+        const headersInput = div.querySelector(`#${serverId}-headers`);
+        const removeBtn = div.querySelector('button');
+        
+        nameInput.addEventListener('input', () => this.updateMcpServer(serverId, nameInput, 'name'));
+        endpointInput.addEventListener('input', () => this.updateMcpServer(serverId, endpointInput, 'endpoint'));
+        transportSelect.addEventListener('change', () => this.updateMcpServer(serverId, transportSelect, 'transport'));
+        isToolCallSelect.addEventListener('change', () => this.updateMcpServer(serverId, isToolCallSelect, 'isToolCallAvailable'));
+        allowedToolsInput.addEventListener('input', () => this.updateMcpServer(serverId, allowedToolsInput, 'allowedTools'));
+        if (timeoutMsInput) timeoutMsInput.addEventListener('input', () => this.updateMcpServer(serverId, timeoutMsInput, 'timeoutMs'));
+        if (headersInput) headersInput.addEventListener('input', () => this.updateMcpServer(serverId, headersInput, 'headers'));
+        removeBtn.addEventListener('click', () => this.removeMcpServer(serverId));
+        
+        container.appendChild(div);
+        this.mcpServers[serverId] = {
+            name: "",
+            endpoint: "",
+            transport: "sse",
+            is_tool_call_available: true,
+            allowed_tools: ["*"],
+            timeout_ms: null,
+            headers: null
+        };
+        
+        // Initialize tooltips for the new server configuration
+        if (window.attachTooltipListenersToDrawer) {
+            window.attachTooltipListenersToDrawer('llmDrawer');
+        }
+    }
+
+    updateMcpServer(id, input, fieldType) {
+        if (!this.mcpServers[id]) return;
+        
+        if (fieldType === "name") {
+            this.mcpServers[id].name = input.value.trim();
+        } else if (fieldType === "endpoint") {
+            this.mcpServers[id].endpoint = input.value.trim();
+        } else if (fieldType === "transport") {
+            this.mcpServers[id].transport = input.value;
+        } else if (fieldType === "isToolCallAvailable") {
+            this.mcpServers[id].is_tool_call_available = input.value === "true";
+        } else if (fieldType === "allowedTools") {
+            const value = input.value.trim();
+            if (value === "") {
+                this.mcpServers[id].allowed_tools = ["*"];
+            } else {
+                this.mcpServers[id].allowed_tools = value.split(",").map(v => v.trim()).filter(v => v !== "");
+            }
+        } else if (fieldType === "timeoutMs") {
+            const val = input.value.trim();
+            this.mcpServers[id].timeout_ms = val === "" ? null : parseInt(input.value, 10);
+        } else if (fieldType === "headers") {
+            const val = input.value.trim();
+            if (val === "") {
+                this.mcpServers[id].headers = null;
+            } else {
+                try {
+                    this.mcpServers[id].headers = JSON.parse(val);
+                } catch (e) {
+                    this.mcpServers[id].headers = null;
+                }
+            }
+        }
+    }
+
+    removeMcpServer(id) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.remove();
+        }
+        delete this.mcpServers[id];
     }
 
     async createAgent() {
@@ -2083,6 +2232,17 @@ window.UI = class UI {
             if (drawer) drawer.classList.add('hidden');
             if (backdrop) backdrop.classList.add('hidden');
         });
+        
+        // When LLM drawer opens, sync MCP and filler words config visibility
+        if (drawerId === 'llmDrawer') {
+            setTimeout(() => {
+                const enableToolsCheckbox = document.getElementById("enableTools");
+                if (enableToolsCheckbox && enableToolsCheckbox.checked) {
+                    this.handleEnableToolsChange();
+                }
+                this.handleFillerWordsEnableChange();
+            }, 100);
+        }
         // Find the button that triggered this drawer
         let btnId = '';
         if (drawerId === 'llmDrawer') btnId = 'llmSettingsBtn';
@@ -2216,7 +2376,6 @@ window.UI = class UI {
                     this.mediaProcessor.cameraPreviewManager = cameraPreviewManager;
                 }
                 
-                console.log('Camera preview manager initialized successfully');
             } else {
                 console.warn('CameraPreviewManager not available');
             }

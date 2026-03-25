@@ -112,6 +112,12 @@ window.Utils = class Utils {
         const mllmVendor = document.getElementById("mllmVendor").value;
         const mllmStyle = document.getElementById("mllmStyle").value;
         const mllmMaxHistory = document.getElementById("mllmMaxHistory").value || null;
+        const mllmOpenaiModel = document.getElementById("mllmOpenaiModel") ? document.getElementById("mllmOpenaiModel").value.trim() : "";
+        const mllmOpenaiVoice = document.getElementById("mllmOpenaiVoice") ? document.getElementById("mllmOpenaiVoice").value.trim() : "";
+        const mllmOpenaiInstructions = document.getElementById("mllmOpenaiInstructions") ? document.getElementById("mllmOpenaiInstructions").value.trim() : "";
+        const mllmOpenaiTranscriptionLanguage = document.getElementById("mllmOpenaiTranscriptionLanguage") ? document.getElementById("mllmOpenaiTranscriptionLanguage").value.trim() : "";
+        const mllmOpenaiTranscriptionModel = document.getElementById("mllmOpenaiTranscriptionModel") ? document.getElementById("mllmOpenaiTranscriptionModel").value.trim() : "";
+        const mllmOpenaiTranscriptionPrompt = document.getElementById("mllmOpenaiTranscriptionPrompt") ? document.getElementById("mllmOpenaiTranscriptionPrompt").value.trim() : "";
         
         // Get Vertex AI specific settings
         const vertexaiAdcCredentials = document.getElementById("vertexaiAdcCredentials") ? document.getElementById("vertexaiAdcCredentials").value.trim() : '';
@@ -120,6 +126,8 @@ window.Utils = class Utils {
         const vertexaiModel = document.getElementById("vertexaiModel") ? document.getElementById("vertexaiModel").value.trim() : '';
         const vertexaiVoice = document.getElementById("vertexaiVoice") ? document.getElementById("vertexaiVoice").value.trim() : '';
         const vertexaiInstructions = document.getElementById("vertexaiInstructions") ? document.getElementById("vertexaiInstructions").value.trim() : '';
+        const vertexaiTranscribeAgent = document.getElementById("vertexaiTranscribeAgent") ? document.getElementById("vertexaiTranscribeAgent").checked : true;
+        const vertexaiTranscribeUser = document.getElementById("vertexaiTranscribeUser") ? document.getElementById("vertexaiTranscribeUser").checked : true;
         
         // Get input/output modalities
         const inputModalities = [
@@ -133,6 +141,12 @@ window.Utils = class Utils {
             ...(document.getElementById("outputAudio").checked ? ["audio"] : [])
         ];
 
+        // Pipeline overrides: if Pipeline ID is provided, these determine whether
+        // we still send ASR/LLM/TTS blocks from this UI.
+        const overrideLlm = document.getElementById("overrideLlm") ? document.getElementById("overrideLlm").checked : false;
+        const overrideTts = document.getElementById("overrideTts") ? document.getElementById("overrideTts").checked : false;
+        const overrideAsr = document.getElementById("overrideAsr") ? document.getElementById("overrideAsr").checked : false;
+
         // Get AI Avatar settings
         const enableAvatar = document.getElementById("enableAvatar").checked;
         const avatarVendor = document.getElementById("avatarVendor").value;
@@ -143,6 +157,7 @@ window.Utils = class Utils {
         const heygenQuality = document.getElementById("heygenQuality").value;
         const heygenDisableIdleTimeout = document.getElementById("heygenDisableIdleTimeout").checked;
         const heygenActivityIdleTimeout = document.getElementById("heygenActivityIdleTimeout").value || null;
+        // Anam base URL removed from UI; optional override was anam_base_url in avatar.params (commented out in buildAgentConfig).
 
         return {
             uniqueName: document.getElementById("uniqueName").value.trim(),
@@ -151,6 +166,11 @@ window.Utils = class Utils {
             token: document.getElementById("agoraRtcToken").value.trim(),
             remoteRtcUids: remoteRtcUids,
             idleTimeout: idleTimeout,
+            // Optional pipeline ID for backend-configured ASR/LLM/TTS
+            pipelineId: document.getElementById("pipelineId") ? document.getElementById("pipelineId").value.trim() : '',
+            overrideLlm: overrideLlm,
+            overrideTts: overrideTts,
+            overrideAsr: overrideAsr,
             llmApiKey: document.getElementById("llmApiKey").value.trim(),
             llmUrl: document.getElementById("llmUrl").value.trim(),
             llmAccessKey: document.getElementById("llmAccessKey") ? document.getElementById("llmAccessKey").value.trim() : '',
@@ -194,6 +214,12 @@ window.Utils = class Utils {
             mllmVendor: mllmVendor,
             mllmStyle: mllmStyle,
             mllmMaxHistory: mllmMaxHistory,
+            mllmOpenaiModel: mllmOpenaiModel,
+            mllmOpenaiVoice: mllmOpenaiVoice,
+            mllmOpenaiInstructions: mllmOpenaiInstructions,
+            mllmOpenaiTranscriptionLanguage: mllmOpenaiTranscriptionLanguage,
+            mllmOpenaiTranscriptionModel: mllmOpenaiTranscriptionModel,
+            mllmOpenaiTranscriptionPrompt: mllmOpenaiTranscriptionPrompt,
             
             // Vertex AI settings
             vertexaiAdcCredentials: vertexaiAdcCredentials,
@@ -202,6 +228,8 @@ window.Utils = class Utils {
             vertexaiModel: vertexaiModel,
             vertexaiVoice: vertexaiVoice,
             vertexaiInstructions: vertexaiInstructions,
+            vertexaiTranscribeAgent: vertexaiTranscribeAgent,
+            vertexaiTranscribeUser: vertexaiTranscribeUser,
             
             // Turn detection
             turnDetectionEnabled: turnDetectionEnabled,
@@ -279,13 +307,41 @@ window.Utils = class Utils {
             throw new Error(`Missing required fields: ${missing.join(', ')}`);
         }
 
+        const hasPipelineId = data.pipelineId && data.pipelineId.trim() !== '';
+        const overrideLlm = data.overrideLlm;
+        const overrideTts = data.overrideTts;
+        const overrideAsr = data.overrideAsr;
+
         // Validate MLLM configuration if enabled
         if (data.enableMllm) {
-            if (!data.mllmUrl) {
-                throw new Error('MLLM URL is required when MLLM is enabled');
+            if (hasPipelineId) {
+                throw new Error('Disable MLLM when Pipeline ID is provided');
             }
-            if (!data.mllmApiKey) {
-                throw new Error('MLLM API Key is required when MLLM is enabled');
+            const mllmInputModalities = (data.inputModalities || []).filter(modality => modality === 'audio' || modality === 'text');
+            const mllmOutputModalities = (data.outputModalities || []).filter(modality => modality === 'audio' || modality === 'text');
+            if (!mllmInputModalities.includes('audio')) {
+                throw new Error('MLLM requires audio input modality');
+            }
+            if (!mllmOutputModalities.includes('audio')) {
+                throw new Error('MLLM requires audio output modality');
+            }
+            if (data.mllmVendor === 'vertexai') {
+                if (!data.vertexaiAdcCredentials) {
+                    throw new Error('Vertex AI ADC Credentials are required when MLLM vendor is Gemini Live');
+                }
+                if (!data.vertexaiProjectId) {
+                    throw new Error('Vertex AI Project ID is required when MLLM vendor is Gemini Live');
+                }
+                if (!data.vertexaiLocation) {
+                    throw new Error('Vertex AI Location is required when MLLM vendor is Gemini Live');
+                }
+            } else {
+                if (!data.mllmUrl) {
+                    throw new Error('MLLM URL is required when MLLM is enabled');
+                }
+                if (!data.mllmApiKey) {
+                    throw new Error('MLLM API Key is required when MLLM is enabled');
+                }
             }
             // AI Avatar is not compatible with MLLM
             if (data.enableAvatar) {
@@ -307,7 +363,7 @@ window.Utils = class Utils {
                 
                 // AI Avatar requires TTS to be enabled
                 const ttsVendor = data.vendor;
-                if (!ttsVendor) {
+                if (!(hasPipelineId && !overrideTts) && !ttsVendor) {
                     throw new Error('TTS vendor is required when AI Avatar is enabled');
                 }
                 
@@ -323,125 +379,136 @@ window.Utils = class Utils {
                     throw new Error('Remote RTC UIDs cannot be "*" when AI Avatar is enabled. Please set specific UIDs.');
                 }
             }
-            // Validate LLM configuration if MLLM is not enabled
-            if (!data.llmApiKey) {
-                throw new Error('LLM API Key is required');
-            }
-            if (!data.llmUrl) {
-                throw new Error('LLM URL is required');
-            }
 
-            // Validate TTS configuration based on vendor
-            const ttsVendor = data.vendor;
-            if (ttsVendor === 'microsoft') {
-                if (!data.ttsKey) {
-                    throw new Error('Microsoft TTS Key is required');
+            // Validate LLM/TTS/ASR only if not using pipeline mode,
+            // or if the corresponding override checkbox is checked.
+            const shouldValidateLlm = !hasPipelineId || overrideLlm;
+            const shouldValidateTts = !hasPipelineId || overrideTts;
+            const shouldValidateAsr = !hasPipelineId || overrideAsr;
+
+            if (shouldValidateLlm) {
+                if (!data.llmApiKey) {
+                    throw new Error('LLM API Key is required');
                 }
-            } else if (ttsVendor === 'elevenlabs') {
-                const elevenLabsTtsKey = document.getElementById('elevenLabsTtsKey').value.trim();
-                const elevenLabsModelId = document.getElementById('elevenLabsModelId').value.trim();
-                const elevenLabsVoiceSelect = document.getElementById('elevenLabsVoiceSelect').value;
-                const elevenLabsVoiceId = document.getElementById('elevenLabsVoiceId').value.trim();
-                
-                if (!elevenLabsTtsKey) {
-                    throw new Error('ElevenLabs TTS Key is required');
-                }
-                if (!elevenLabsModelId) {
-                    throw new Error('ElevenLabs Model ID is required');
-                }
-                if (elevenLabsVoiceSelect === 'other' && !elevenLabsVoiceId) {
-                    throw new Error('ElevenLabs Voice ID is required when "Other" is selected');
-                }
-            } else if (ttsVendor === 'cartesia') {
-                const cartesiaTtsKey = document.getElementById('cartesiaTtsKey').value.trim();
-                const cartesiaModelId = document.getElementById('cartesiaModelId').value.trim();
-                const cartesiaVoiceId = document.getElementById('cartesiaVoiceId').value.trim();
-                
-                if (!cartesiaTtsKey) {
-                    throw new Error('Cartesia API Key is required');
-                }
-                if (!cartesiaModelId) {
-                    throw new Error('Cartesia Model ID is required');
-                }
-                if (!cartesiaVoiceId) {
-                    throw new Error('Cartesia Voice ID is required');
-                }
-            } else if (ttsVendor === 'openai') {
-                const openaiTtsKey = document.getElementById('openaiTtsKey').value.trim();
-                const openaiModel = document.getElementById('openaiModel').value.trim();
-                const openaiVoice = document.getElementById('openaiVoice').value.trim();
-                
-                if (!openaiTtsKey) {
-                    throw new Error('OpenAI API Key is required');
-                }
-                if (!openaiModel) {
-                    throw new Error('OpenAI Model is required');
-                }
-                if (!openaiVoice) {
-                    throw new Error('OpenAI Voice is required');
-                }
-            } else if (ttsVendor === 'playht') {
-                const playhtTtsKey = document.getElementById('playhtTtsKey').value.trim();
-                const playhtUserId = document.getElementById('playhtUserId').value.trim();
-                const playhtVoiceEngine = document.getElementById('playhtVoiceEngine').value.trim();
-                const playhtVoice = document.getElementById('playhtVoice').value.trim();
-                
-                if (!playhtTtsKey) {
-                    throw new Error('PlayHT API Key is required');
-                }
-                if (!playhtUserId) {
-                    throw new Error('PlayHT User ID is required');
-                }
-                if (!playhtVoiceEngine) {
-                    throw new Error('PlayHT Voice Engine is required');
-                }
-                if (!playhtVoice) {
-                    throw new Error('PlayHT Voice is required');
-                }
-            } else if (ttsVendor === 'sarvam') {
-                const sarvamTtsKey = document.getElementById('sarvamTtsKey').value.trim();
-                const sarvamSpeakerSelect = document.getElementById('sarvamSpeaker').value.trim();
-                const sarvamSpeakerId = document.getElementById('sarvamSpeakerId') ? document.getElementById('sarvamSpeakerId').value.trim() : '';
-                const sarvamLanguageCode = document.getElementById('sarvamLanguageCode').value.trim();
-                
-                if (!sarvamTtsKey) {
-                    throw new Error('Sarvam API Key is required');
-                }
-                if (sarvamSpeakerSelect === 'other' && !sarvamSpeakerId) {
-                    throw new Error('Sarvam Custom Speaker ID is required when "Custom" is selected');
-                }
-                if (sarvamSpeakerSelect !== 'other' && !sarvamSpeakerSelect) {
-                    throw new Error('Sarvam Speaker is required');
-                }
-                if (!sarvamLanguageCode) {
-                    throw new Error('Sarvam Language Code is required');
+                if (!data.llmUrl) {
+                    throw new Error('LLM URL is required');
                 }
             }
 
-            // Validate ASR configuration based on vendor
-            const asrVendor = data.asrVendor;
-            if (asrVendor === 'microsoft') {
-                const microsoftAsrKey = document.getElementById('microsoftAsrKey').value.trim();
-                const microsoftAsrRegion = document.getElementById('microsoftAsrRegion').value.trim();
-                const asrLanguage = document.getElementById('asrLanguage').value;
-                if (!microsoftAsrKey) {
-                    throw new Error('Microsoft ASR Key is required');
+            if (shouldValidateTts) {
+                // Validate TTS configuration based on vendor
+                const ttsVendor = data.vendor;
+                if (ttsVendor === 'microsoft') {
+                    if (!data.ttsKey) {
+                        throw new Error('Microsoft TTS Key is required');
+                    }
+                } else if (ttsVendor === 'elevenlabs') {
+                    const elevenLabsTtsKey = document.getElementById('elevenLabsTtsKey').value.trim();
+                    const elevenLabsModelId = document.getElementById('elevenLabsModelId').value.trim();
+                    const elevenLabsVoiceSelect = document.getElementById('elevenLabsVoiceSelect').value;
+                    const elevenLabsVoiceId = document.getElementById('elevenLabsVoiceId').value.trim();
+                    
+                    if (!elevenLabsTtsKey) {
+                        throw new Error('ElevenLabs TTS Key is required');
+                    }
+                    if (!elevenLabsModelId) {
+                        throw new Error('ElevenLabs Model ID is required');
+                    }
+                    if (elevenLabsVoiceSelect === 'other' && !elevenLabsVoiceId) {
+                        throw new Error('ElevenLabs Voice ID is required when "Other" is selected');
+                    }
+                } else if (ttsVendor === 'cartesia') {
+                    const cartesiaTtsKey = document.getElementById('cartesiaTtsKey').value.trim();
+                    const cartesiaModelId = document.getElementById('cartesiaModelId').value.trim();
+                    const cartesiaVoiceId = document.getElementById('cartesiaVoiceId').value.trim();
+                    
+                    if (!cartesiaTtsKey) {
+                        throw new Error('Cartesia API Key is required');
+                    }
+                    if (!cartesiaModelId) {
+                        throw new Error('Cartesia Model ID is required');
+                    }
+                    if (!cartesiaVoiceId) {
+                        throw new Error('Cartesia Voice ID is required');
+                    }
+                } else if (ttsVendor === 'openai') {
+                    const openaiTtsKey = document.getElementById('openaiTtsKey').value.trim();
+                    const openaiModel = document.getElementById('openaiModel').value.trim();
+                    const openaiVoice = document.getElementById('openaiVoice').value.trim();
+                    
+                    if (!openaiTtsKey) {
+                        throw new Error('OpenAI API Key is required');
+                    }
+                    if (!openaiModel) {
+                        throw new Error('OpenAI Model is required');
+                    }
+                    if (!openaiVoice) {
+                        throw new Error('OpenAI Voice is required');
+                    }
+                } else if (ttsVendor === 'playht') {
+                    const playhtTtsKey = document.getElementById('playhtTtsKey').value.trim();
+                    const playhtUserId = document.getElementById('playhtUserId').value.trim();
+                    const playhtVoiceEngine = document.getElementById('playhtVoiceEngine').value.trim();
+                    const playhtVoice = document.getElementById('playhtVoice').value.trim();
+                    
+                    if (!playhtTtsKey) {
+                        throw new Error('PlayHT API Key is required');
+                    }
+                    if (!playhtUserId) {
+                        throw new Error('PlayHT User ID is required');
+                    }
+                    if (!playhtVoiceEngine) {
+                        throw new Error('PlayHT Voice Engine is required');
+                    }
+                    if (!playhtVoice) {
+                        throw new Error('PlayHT Voice is required');
+                    }
+                } else if (ttsVendor === 'sarvam') {
+                    const sarvamTtsKey = document.getElementById('sarvamTtsKey').value.trim();
+                    const sarvamSpeakerSelect = document.getElementById('sarvamSpeaker').value.trim();
+                    const sarvamSpeakerId = document.getElementById('sarvamSpeakerId') ? document.getElementById('sarvamSpeakerId').value.trim() : '';
+                    const sarvamLanguageCode = document.getElementById('sarvamLanguageCode').value.trim();
+                    
+                    if (!sarvamTtsKey) {
+                        throw new Error('Sarvam API Key is required');
+                    }
+                    if (sarvamSpeakerSelect === 'other' && !sarvamSpeakerId) {
+                        throw new Error('Sarvam Custom Speaker ID is required when "Custom" is selected');
+                    }
+                    if (sarvamSpeakerSelect !== 'other' && !sarvamSpeakerSelect) {
+                        throw new Error('Sarvam Speaker is required');
+                    }
+                    if (!sarvamLanguageCode) {
+                        throw new Error('Sarvam Language Code is required');
+                    }
                 }
-                if (!microsoftAsrRegion) {
-                    throw new Error('Microsoft ASR Region is required');
-                }
-                if (!asrLanguage) {
-                    throw new Error('ASR Language is required');
-                }
-            } else if (asrVendor === 'deepgram') {
-                const deepgramAsrUrl = document.getElementById('deepgramAsrUrl').value.trim();
-                const deepgramAsrKey = document.getElementById('deepgramAsrKey').value.trim();
-                const asrLanguage = document.getElementById('asrLanguage').value.trim();
-                if (!deepgramAsrKey) {
-                    throw new Error('Deepgram ASR Key is required');
-                }
-                if (!asrLanguage) {
-                    throw new Error('ASR Language is required');
+            }
+
+            if (shouldValidateAsr) {
+                // Validate ASR configuration based on vendor
+                const asrVendor = data.asrVendor;
+                if (asrVendor === 'microsoft') {
+                    const microsoftAsrKey = document.getElementById('microsoftAsrKey').value.trim();
+                    const microsoftAsrRegion = document.getElementById('microsoftAsrRegion').value.trim();
+                    const asrLanguage = document.getElementById('asrLanguage').value;
+                    if (!microsoftAsrKey) {
+                        throw new Error('Microsoft ASR Key is required');
+                    }
+                    if (!microsoftAsrRegion) {
+                        throw new Error('Microsoft ASR Region is required');
+                    }
+                    if (!asrLanguage) {
+                        throw new Error('ASR Language is required');
+                    }
+                } else if (asrVendor === 'deepgram') {
+                    const deepgramAsrKey = document.getElementById('deepgramAsrKey').value.trim();
+                    const asrLanguage = document.getElementById('asrLanguage').value.trim();
+                    if (!deepgramAsrKey) {
+                        throw new Error('Deepgram ASR Key is required');
+                    }
+                    if (!asrLanguage) {
+                        throw new Error('ASR Language is required');
+                    }
                 }
             }
         }
@@ -1149,15 +1216,24 @@ window.Utils = class Utils {
                     }
                 }),
                 ...(formData.enableMllm ? { // Include MLLM if enabled
-                    mllm: {
+                    mllm: (() => {
+                        const mllmInputModalities = (formData.inputModalities || []).filter(modality => modality === 'audio' || modality === 'text');
+                        const safeMllmInputModalities = mllmInputModalities.length > 0
+                            ? mllmInputModalities
+                            : ['audio'];
+                        const mllmOutputModalities = (formData.outputModalities || []).filter(modality => modality === 'audio' || modality === 'text');
+                        const safeMllmOutputModalities = mllmOutputModalities.length > 0
+                            ? mllmOutputModalities
+                            : (formData.mllmVendor === 'vertexai' ? ['audio'] : ['text', 'audio']);
+                        const mllmConfig = {
                         ...(formData.mllmVendor === 'vertexai' ? {} : { url: formData.mllmUrl }), // URL not needed for vertexai
                         ...(formData.mllmVendor === 'vertexai' ? {} : { api_key: formData.mllmApiKey }), // API key not needed for vertexai
                         ...(formData.mllmGreetingMessage ? { greeting_message: formData.mllmGreetingMessage } : {}),
                         ...(formData.mllmVendor ? { vendor: formData.mllmVendor } : {}),
                         ...(formData.mllmStyle ? { style: formData.mllmStyle } : {}),
                         ...(formData.mllmMaxHistory ? { max_history: parseInt(formData.mllmMaxHistory, 10) } : {}),
-                        input_modalities: ["audio"], // MLLM uses audio input
-                        output_modalities: ["audio"], // MLLM outputs audio
+                        input_modalities: safeMllmInputModalities,
+                        output_modalities: safeMllmOutputModalities,
                         ...(formData.mllmVendor === 'vertexai' ? {
                             params: {
                                 model: formData.vertexaiModel || 'gemini-live-2.5-flash-preview-native-audio-09-2025',
@@ -1166,12 +1242,28 @@ window.Utils = class Utils {
                                 location: formData.vertexaiLocation,
                                 ...(formData.vertexaiVoice ? { voice: formData.vertexaiVoice } : {}),
                                 ...(formData.vertexaiInstructions ? { instructions: formData.vertexaiInstructions } : {}),
-                                transcribe_agent: true,
-                                transcribe_user: true,
+                                transcribe_agent: formData.vertexaiTranscribeAgent,
+                                transcribe_user: formData.vertexaiTranscribeUser,
                                 ...customParams
                             }
-                        } : (Object.keys(customParams).length > 0 ? { params: customParams } : {})) // Only include params if customParams is not empty
-                    }
+                        } : {
+                            params: {
+                                ...(formData.mllmOpenaiModel ? { model: formData.mllmOpenaiModel } : {}),
+                                ...(formData.mllmOpenaiVoice ? { voice: formData.mllmOpenaiVoice } : {}),
+                                ...(formData.mllmOpenaiInstructions ? { instructions: formData.mllmOpenaiInstructions } : {}),
+                                ...((formData.mllmOpenaiTranscriptionLanguage || formData.mllmOpenaiTranscriptionModel || formData.mllmOpenaiTranscriptionPrompt) ? {
+                                    input_audio_transcription: {
+                                        ...(formData.mllmOpenaiTranscriptionLanguage ? { language: formData.mllmOpenaiTranscriptionLanguage } : {}),
+                                        ...(formData.mllmOpenaiTranscriptionModel ? { model: formData.mllmOpenaiTranscriptionModel } : {}),
+                                        ...(formData.mllmOpenaiTranscriptionPrompt ? { prompt: formData.mllmOpenaiTranscriptionPrompt } : {})
+                                    }
+                                } : {}),
+                                ...customParams
+                            }
+                        })
+                        };
+                        return mllmConfig;
+                    })()
                 } : {}),
                         //add chorus scenario for websdk fix for now, merge with dynamic parameters
                 parameters: {
@@ -1197,12 +1289,20 @@ window.Utils = class Utils {
             config.properties.avatar = {
                 vendor: formData.avatarVendor,
                 enable: true,
-                params: {
-                    api_key: formData.avatarApiKey,
-                    agora_uid: formData.avatarRtcUid,
-                    avatar_id: formData.avatarId,
-                    ...(formData.avatarRtcToken && formData.avatarRtcToken !== '' ? { agora_token: formData.avatarRtcToken } : {})
-                }
+                params: formData.avatarVendor === 'anam'
+                    ? {
+                        agora_token: formData.avatarRtcToken || '',
+                        agora_uid: formData.avatarRtcUid,
+                        api_key: formData.avatarApiKey,
+                        avatar_id: formData.avatarId
+                        // anam_base_url: removed from request; backend uses default Anam API base URL
+                    }
+                    : {
+                        api_key: formData.avatarApiKey,
+                        agora_uid: formData.avatarRtcUid,
+                        avatar_id: formData.avatarId,
+                        ...(formData.avatarRtcToken && formData.avatarRtcToken !== '' ? { agora_token: formData.avatarRtcToken } : {})
+                    }
             };
 
             // Add HeyGen specific parameters
@@ -1467,6 +1567,31 @@ window.Utils = class Utils {
         }
         // If no encryption mode is selected, rtc property is not added to config.properties
 
+        // If a pipeline ID is provided, attach it to the top-level config and
+        // strip vendor-specific ASR/LLM/TTS/MLLM config. When not overriding LLM,
+        // remove llm entirely (no empty object) — modalities are not sent.
+        if (formData.pipelineId && formData.pipelineId.trim() !== '') {
+            config.pipeline_id = formData.pipelineId.trim();
+            if (config.properties) {
+                const overrideLlm = !!formData.overrideLlm;
+                const overrideTts = !!formData.overrideTts;
+                const overrideAsr = !!formData.overrideAsr;
+
+                // Pipeline mode: remove MLLM completely
+                delete config.properties.mllm;
+
+                // Conditionally remove vendor-specific blocks
+                if (!overrideAsr) delete config.properties.asr;
+                if (!overrideTts) delete config.properties.tts;
+
+                // Conditionally remove LLM config (including input/output modalities).
+                // Only keep llm when override LLM is enabled.
+                if (!overrideLlm) {
+                    delete config.properties.llm;
+                }
+            }
+        }
+
         return config;
     }
 
@@ -1486,9 +1611,11 @@ window.Utils = class Utils {
         if (!channelName) {
             throw new Error("Channel name is required");
         }
-        if (!userAccount) {
-            throw new Error("User account (UID) is required");
-        }
+        // Default empty / undefined userAccount to 0 so callers
+        // can omit UID for cases like client tokens.
+        const finalUserAccount = (userAccount === undefined || userAccount === null || userAccount === '')
+            ? 0
+            : userAccount;
 
         const TOKEN_EXPIRE = 1800; // 30 minutes in seconds
         const PRIVILEGE_EXPIRE = 1800; // 30 minutes in seconds
@@ -1498,7 +1625,7 @@ window.Utils = class Utils {
                 appId,
                 appCertificate,
                 channelName,
-                userAccount.toString(),
+                finalUserAccount.toString(),
                 role,
                 TOKEN_EXPIRE,
                 PRIVILEGE_EXPIRE

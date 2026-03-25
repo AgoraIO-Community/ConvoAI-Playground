@@ -1656,16 +1656,15 @@
           }
         };
       } else {
-        // Include token, llm.system_messages, and llm.params (customParams)
-        updateJson = {
-          properties: {
-            token: config.properties.token,
-            llm: {
-              system_messages: config.properties.llm.system_messages,
-              params: config.properties.llm.params
-            }
-          }
-        };
+        // Include token; llm only when present (e.g. pipeline mode without override omits llm)
+        const props = { token: config.properties.token };
+        if (config.properties.llm) {
+          props.llm = {
+            system_messages: config.properties.llm.system_messages,
+            params: config.properties.llm.params
+          };
+        }
+        updateJson = { properties: props };
       }
 
       const jsonString = JSON.stringify(updateJson, null, 2);
@@ -1703,7 +1702,8 @@
 
       try {
           const { customerId, customerSecret } = window.Utils.getStoredCredentials();
-          const response = await agoraAPI.getAgentHistory(customerId, customerSecret, agentId.value);
+          const activeAgoraAPI = (window.ui && window.ui.agoraAPI) ? window.ui.agoraAPI : agoraAPI;
+          const response = await activeAgoraAPI.getAgentHistory(customerId, customerSecret, agentId.value);
           if (queryResponse) {
             queryResponse.textContent = JSON.stringify(response, null, 2);
           }
@@ -1775,7 +1775,8 @@
         return;
       }
       try {
-        await agoraAPI.broadcastMessage(customerId, customerSecret, agentId, text, priority, interruptable);
+        const activeAgoraAPI = (window.ui && window.ui.agoraAPI) ? window.ui.agoraAPI : agoraAPI;
+        await activeAgoraAPI.broadcastMessage(customerId, customerSecret, agentId, text, priority, interruptable);
         statusDiv.textContent = 'Broadcast sent successfully!';
         statusDiv.className = 'mt-2 text-sm text-green-400';
         document.getElementById('broadcastText').value = '';
@@ -1802,7 +1803,8 @@
         return;
       }
       try {
-        await agoraAPI.interruptAgent(customerId, customerSecret, agentId);
+        const activeAgoraAPI = (window.ui && window.ui.agoraAPI) ? window.ui.agoraAPI : agoraAPI;
+        await activeAgoraAPI.interruptAgent(customerId, customerSecret, agentId);
         statusDiv.textContent = 'Interrupt sent successfully!';
         statusDiv.className = 'mt-2 text-sm text-green-400';
       } catch (err) {
@@ -2988,15 +2990,15 @@
     });
     }
 
-    // Handle avatar vendor change
+    // Handle avatar vendor change (Anam has no extra UI fields; base URL removed)
     if (avatarVendor && heygenSettings) {
     avatarVendor.addEventListener('change', function() {
-      if (this.value === 'heygen') {
-        heygenSettings.classList.remove('hidden');
-      } else {
-        heygenSettings.classList.add('hidden');
-      }
+      const v = this.value;
+      heygenSettings.classList.toggle('hidden', v !== 'heygen');
     });
+    // Initial sync in case vendor is already heygen (e.g. loaded config)
+    const v = avatarVendor.value;
+    heygenSettings.classList.toggle('hidden', v !== 'heygen');
     }
 
     // Handle UID changes when AI Avatar is enabled
@@ -3113,17 +3115,27 @@
     const mllmDrawer = document.getElementById('mllmDrawer');
     const mllmDrawerBackdrop = document.getElementById('mllmDrawerBackdrop');
     const mllmVendor = document.getElementById('mllmVendor');
+    const mllmUrl = document.getElementById('mllmUrl');
+    const mllmApiKey = document.getElementById('mllmApiKey');
+    const openaiMllmConfig = document.getElementById('openaiMllmConfig');
     const vertexaiConfig = document.getElementById('vertexaiConfig');
     
-    // Show/hide Vertex AI config based on vendor selection
-    if (mllmVendor && vertexaiConfig) {
-        mllmVendor.addEventListener('change', function() {
-            if (this.value === 'vertexai') {
+    // Show/hide MLLM vendor-specific sections and defaults
+    if (mllmVendor && vertexaiConfig && openaiMllmConfig) {
+        const updateMllmVendorUI = function() {
+            if (mllmVendor.value === 'vertexai') {
                 vertexaiConfig.classList.remove('hidden');
+                openaiMllmConfig.classList.add('hidden');
+                if (mllmUrl) mllmUrl.value = '';
+                if (mllmApiKey) mllmApiKey.value = '';
             } else {
+                openaiMllmConfig.classList.remove('hidden');
                 vertexaiConfig.classList.add('hidden');
+                if (mllmUrl && !mllmUrl.value.trim()) mllmUrl.value = 'wss://api.openai.com/v1/realtime';
             }
-        });
+        };
+        mllmVendor.addEventListener('change', updateMllmVendorUI);
+        updateMllmVendorUI();
     }
     const enableMllm = document.getElementById('enableMllm');
 
@@ -3191,24 +3203,59 @@
       const inputModalities = document.querySelector('.w-full.p-2.rounded.bg-gray-700.text-white');
       const outputModalities = document.querySelectorAll('.w-full.p-2.rounded.bg-gray-700.text-white')[1];
 
+      const pipelineIdInput = document.getElementById('pipelineId');
+      const hasPipelineId = pipelineIdInput && pipelineIdInput.value.trim() !== '';
+
+      // Helper to disable LLM/TTS/ASR when either MLLM or pipeline ID is active
+      const disableLlmsForBackendOrMllm = () => {
+        if (llmSettingsBtn) {
+          llmSettingsBtn.disabled = true;
+          llmSettingsBtn.classList.add('opacity-50');
+        }
+        if (ttsSettingsBtn) {
+          ttsSettingsBtn.disabled = true;
+          ttsSettingsBtn.classList.add('opacity-50');
+        }
+        if (asrConfigBox) {
+          asrConfigBox.classList.add('opacity-50');
+          asrConfigBox.style.pointerEvents = 'none';
+        }
+      };
+
+      const enableLlmsWhenAllowed = () => {
+        // Only re-enable if there is no pipeline ID set
+        const hasPipelineNow = pipelineIdInput && pipelineIdInput.value.trim() !== '';
+        if (hasPipelineNow) return;
+
+        if (llmSettingsBtn) {
+          llmSettingsBtn.disabled = false;
+          llmSettingsBtn.classList.remove('opacity-50');
+        }
+        if (ttsSettingsBtn) {
+          ttsSettingsBtn.disabled = false;
+          ttsSettingsBtn.classList.remove('opacity-50');
+        }
+        if (asrConfigBox) {
+          asrConfigBox.classList.remove('opacity-50');
+          asrConfigBox.style.pointerEvents = 'auto';
+        }
+      };
+
       if (this.checked) {
         // Disable LLM, TTS, ASR sections
-        llmSettingsBtn.disabled = true;
-        llmSettingsBtn.classList.add('opacity-50');
-        ttsSettingsBtn.disabled = true;
-        ttsSettingsBtn.classList.add('opacity-50');
-        asrConfigBox.classList.add('opacity-50');
-        asrConfigBox.style.pointerEvents = 'none';
+        disableLlmsForBackendOrMllm();
 
-        // Set input modalities: audio checked+disabled, text enabled (can uncheck), image disabled (cannot be checked/unchecked)
+        // Set input modalities: audio checked+disabled, text enabled (can uncheck), image forced off+disabled
         inputAudio.checked = true;
         inputAudio.disabled = true;
         inputText.disabled = false;
+        inputImage.checked = false;
         inputImage.disabled = true;
+        outputAudio.checked = true;
         // Do not force inputText to be checked
-        // Enable modality changes for input section (only text can be toggled)
+        // Enable modality changes for input/output section while in MLLM mode
         inputModalities.style.pointerEvents = 'auto';
-        outputModalities.style.pointerEvents = 'none';
+        outputModalities.style.pointerEvents = 'auto';
 
         // Disable AIVAD and AI Avatar when MLLM is enabled
         document.getElementById('enableAivad').checked = false;
@@ -3225,13 +3272,8 @@
         avatarVideo.style.display = 'none';
         avatarVideo.innerHTML = '';
       } else {
-        // Re-enable LLM, TTS, ASR sections
-        llmSettingsBtn.disabled = false;
-        llmSettingsBtn.classList.remove('opacity-50');
-        ttsSettingsBtn.disabled = false;
-        ttsSettingsBtn.classList.remove('opacity-50');
-        asrConfigBox.classList.remove('opacity-50');
-        asrConfigBox.style.pointerEvents = 'auto';
+        // Re-enable LLM, TTS, ASR sections if no pipeline ID is set
+        enableLlmsWhenAllowed();
 
         // Set input modalities: audio unchecked+disabled, text checked+disabled, image enabled (can check/uncheck)
         inputAudio.checked = false;
@@ -3263,6 +3305,102 @@
       document.getElementById('uniqueName').style.pointerEvents = 'auto';
       document.getElementById('agoraChannelName').style.pointerEvents = 'auto';
     });
+    }
+
+    // Pipeline ID behavior: when set, disable ASR/LLM/TTS sections so that the backend pipeline config is authoritative
+    const pipelineIdInput = document.getElementById('pipelineId');
+    if (pipelineIdInput) {
+      const updateLlmsForPipeline = () => {
+        const hasPipelineId = pipelineIdInput.value.trim() !== '';
+        const llmSettingsBtn = document.getElementById('llmSettingsBtn');
+        const ttsSettingsBtn = document.getElementById('ttsSettingsBtn');
+        const asrConfigBox = document.getElementById('asrConfigBox');
+
+        const overrideLlm = document.getElementById('overrideLlm') ? document.getElementById('overrideLlm').checked : false;
+        const overrideTts = document.getElementById('overrideTts') ? document.getElementById('overrideTts').checked : false;
+        const overrideAsr = document.getElementById('overrideAsr') ? document.getElementById('overrideAsr').checked : false;
+
+        // If MLLM is enabled, it already controls the state; keep that behavior
+        const enableMllmCheckbox = document.getElementById('enableMllm');
+        const mllmSettingsBtn = document.getElementById('mllmSettingsBtn');
+        const mllmActive = enableMllmCheckbox && enableMllmCheckbox.checked;
+
+        if (hasPipelineId) {
+          // Pipeline mode uses backend ASR/LLM/TTS; disable MLLM UI so we don't send mllm.
+          if (enableMllmCheckbox) {
+            enableMllmCheckbox.checked = false;
+            enableMllmCheckbox.disabled = true;
+          }
+          if (mllmSettingsBtn) {
+            mllmSettingsBtn.disabled = true;
+            mllmSettingsBtn.classList.add('opacity-50');
+          }
+
+          if (llmSettingsBtn) {
+            llmSettingsBtn.disabled = !overrideLlm;
+            if (!overrideLlm) llmSettingsBtn.classList.add('opacity-50');
+            else llmSettingsBtn.classList.remove('opacity-50');
+          }
+          if (ttsSettingsBtn) {
+            ttsSettingsBtn.disabled = !overrideTts;
+            if (!overrideTts) ttsSettingsBtn.classList.add('opacity-50');
+            else ttsSettingsBtn.classList.remove('opacity-50');
+          }
+          if (asrConfigBox) {
+            if (!overrideAsr) {
+              asrConfigBox.classList.add('opacity-50');
+              asrConfigBox.style.pointerEvents = 'none';
+            } else {
+              asrConfigBox.classList.remove('opacity-50');
+              asrConfigBox.style.pointerEvents = 'auto';
+            }
+          }
+        } else if (!mllmActive) {
+          // Only re-enable when MLLM is not active
+          if (enableMllmCheckbox) {
+            enableMllmCheckbox.disabled = false;
+          }
+          if (mllmSettingsBtn) {
+            mllmSettingsBtn.classList.remove('opacity-50');
+            mllmSettingsBtn.disabled = false;
+          }
+
+          if (llmSettingsBtn) {
+            llmSettingsBtn.disabled = false;
+            llmSettingsBtn.classList.remove('opacity-50');
+          }
+          if (ttsSettingsBtn) {
+            ttsSettingsBtn.disabled = false;
+            ttsSettingsBtn.classList.remove('opacity-50');
+          }
+          if (asrConfigBox) {
+            asrConfigBox.classList.remove('opacity-50');
+            asrConfigBox.style.pointerEvents = 'auto';
+          }
+        }
+      };
+
+      // Initialize on load
+      updateLlmsForPipeline();
+      // Update on every change (pipeline ID or overrides)
+      pipelineIdInput.addEventListener('input', updateLlmsForPipeline);
+
+      const overrideLlmCheckbox = document.getElementById('overrideLlm');
+      const overrideTtsCheckbox = document.getElementById('overrideTts');
+      const overrideAsrCheckbox = document.getElementById('overrideAsr');
+      // Use both "input" and "change" because checkbox events can differ by interaction method.
+      if (overrideLlmCheckbox) {
+        overrideLlmCheckbox.addEventListener('input', updateLlmsForPipeline);
+        overrideLlmCheckbox.addEventListener('change', updateLlmsForPipeline);
+      }
+      if (overrideTtsCheckbox) {
+        overrideTtsCheckbox.addEventListener('input', updateLlmsForPipeline);
+        overrideTtsCheckbox.addEventListener('change', updateLlmsForPipeline);
+      }
+      if (overrideAsrCheckbox) {
+        overrideAsrCheckbox.addEventListener('input', updateLlmsForPipeline);
+        overrideAsrCheckbox.addEventListener('change', updateLlmsForPipeline);
+      }
     }
 
     // Handle RTM enable/disable
@@ -3411,6 +3549,11 @@
     if (outputAudio) {
       outputAudio.addEventListener('change', function(e) {
       const textCheckbox = document.getElementById('outputText');
+      const enableMllm = document.getElementById('enableMllm');
+        if (enableMllm && enableMllm.checked && !this.checked) {
+        this.checked = true; // MLLM requires audio output
+        return;
+      }
         if (textCheckbox && !this.checked && !textCheckbox.checked) {
         this.checked = true; // Prevent unchecking if it's the last selected option
       }
@@ -4376,7 +4519,7 @@
   <script src="src/js/audio.js?v=1.2"></script>
   <script src="src/js/camera-preview.js?v=1.0"></script>
   <script src="src/js/conversational-ai-api.js?v=1.2"></script>
-  <script src="src/js/subtitles.js?v=1.2"></script>
+  <script src="src/js/subtitles.js?v=1.3"></script>
   <script src="src/js/ui.js?v=1.2"></script>
   <script src="src/js/asr.js?v=1.0"></script>
 
@@ -4586,6 +4729,41 @@
                 </button>
               </div>
               <div class="tooltip">The salt value used for encryption. This is a Base64-encoded string that is 32 bytes long after decoding. Required for AES-128-GCM2 (7) and AES-256-GCM2 (8) modes.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pipeline ID / Backend Pipeline Configuration -->
+        <div class="modern-panel">
+          <h3 class="text-lg font-semibold mb-3">Backend Pipeline Configuration</h3>
+          <div class="modern-input grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="has-tooltip relative">
+              <input
+                id="pipelineId"
+                placeholder="Pipeline ID (optional)"
+              />
+              <div class="tooltip">
+                Optional pipeline ID for backend-configured ASR/LLM/TTS (called <strong>Agent ID</strong> in the Studio console).
+                When set, ASR/LLM/TTS settings in this UI are disabled and the backend pipeline configuration is used instead.
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 text-sm text-gray-200">
+                <input type="checkbox" id="overrideLlm" class="h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                Override LLM
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-200">
+                <input type="checkbox" id="overrideTts" class="h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                Override TTS
+              </label>
+              <label class="flex items-center gap-2 text-sm text-gray-200">
+                <input type="checkbox" id="overrideAsr" class="h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                Override ASR
+              </label>
+              <div class="tooltip">
+                If Pipeline ID is set and an override is checked, the corresponding ASR/LLM/TTS block will also be sent from this UI.
+              </div>
             </div>
           </div>
         </div>
@@ -6019,6 +6197,7 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           >
             <option value="akool">Akool (Beta)</option>
             <option value="heygen">HeyGen (Beta)</option>
+            <option value="anam">Anam</option>
           </select>
           <div class="tooltip">Select the AI Avatar vendor to use for video generation.</div>
         </div>
@@ -6063,6 +6242,8 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           </div>
           <div class="tooltip">The RTC token for the avatar to join the channel. Optional if your app doesn't require tokens. Generated tokens are valid for 30 minutes.</div>
         </div>
+
+        <!-- Anam: no vendor-specific fields (anam_base_url removed from config) -->
 
         <!-- HeyGen-specific settings -->
         <div id="heygenSettings" class="hidden">
@@ -6153,6 +6334,64 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           </select>
           <div class="tooltip">The request style for MLLM completion. Use 'openai' for OpenAI-compatible APIs or Google Gemini Live.</div>
         </div>
+
+        <!-- OpenAI Realtime Specific Settings -->
+        <div id="openaiMllmConfig" class="space-y-4">
+          <div class="has-tooltip relative">
+            <input
+              id="mllmOpenaiModel"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="OpenAI Realtime Model (e.g., gpt-realtime)"
+              value="gpt-realtime"
+            />
+            <div class="tooltip">OpenAI Realtime model identifier.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="mllmOpenaiVoice"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Voice (e.g., coral)"
+              value="coral"
+            />
+            <div class="tooltip">Voice identifier for OpenAI audio output.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <textarea
+              id="mllmOpenaiInstructions"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="System instructions (optional)"
+              rows="3"
+            >You are a Conversational AI Agent, developed by Agora.</textarea>
+            <div class="tooltip">System instructions that define assistant behavior and personality.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="mllmOpenaiTranscriptionLanguage"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Input transcription language (ISO-639-1, e.g., en)"
+            />
+            <div class="tooltip">Optional language hint in ISO-639-1 format for better transcription accuracy and latency.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <select
+              id="mllmOpenaiTranscriptionModel"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            >
+              <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
+              <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
+              <option value="whisper-1">whisper-1</option>
+            </select>
+            <div class="tooltip">Model used for OpenAI input audio transcription.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="mllmOpenaiTranscriptionPrompt"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder='Transcription prompt (optional, e.g., "expect words related to real-time engagement")'
+            />
+            <div class="tooltip">Optional prompt to guide transcription style or expected vocabulary.</div>
+          </div>
+        </div>
         
         <!-- Google Gemini Live (Vertex AI) Specific Settings -->
         <div id="vertexaiConfig" class="hidden space-y-4">
@@ -6207,6 +6446,18 @@ The user speaks to you directly — treat each input as part of a live, spoken d
               rows="3"
             ></textarea>
             <div class="tooltip">System instructions that define the agent's behavior or tone.</div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <label class="flex items-center has-tooltip relative">
+              <input type="checkbox" id="vertexaiTranscribeAgent" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded" checked>
+              <span>Transcribe Agent</span>
+              <div class="tooltip">Whether to transcribe the agent's speech in real time.</div>
+            </label>
+            <label class="flex items-center has-tooltip relative">
+              <input type="checkbox" id="vertexaiTranscribeUser" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded" checked>
+              <span>Transcribe User</span>
+              <div class="tooltip">Whether to transcribe the user's speech in real time.</div>
+            </label>
           </div>
         </div>
         <div class="has-tooltip relative">
@@ -6303,10 +6554,10 @@ The user speaks to you directly — treat each input as part of a live, spoken d
               <label class="text-sm">Turn Detection Type</label>
               <select id="turnDetectionType" class="w-full p-2 rounded bg-gray-600 turn-field">
                 <option value="agora_vad">Agora VAD</option>
-                <option value="server_vad">Server VAD (MLLM + OpenAI only)</option>
-                <option value="semantic_vad">Semantic VAD (MLLM + OpenAI only)</option>
+                <option value="server_vad">Server VAD (MLLM)</option>
+                <option value="semantic_vad">Semantic VAD (MLLM)</option>
               </select>
-              <div class="tooltip">Turn detection mechanism. Server VAD and Semantic VAD are only available when MLLM is enabled and OpenAI is selected.</div>
+              <div class="tooltip">Turn detection mechanism. Server VAD and Semantic VAD are only available when MLLM is enabled.</div>
             </div>
             <div class="has-tooltip relative">
               <label class="text-sm">Interrupt Mode</label>

@@ -48,8 +48,7 @@ class SubtitleManager {
         
         this.initializeElements();
         this.setupEventListeners();
-        
-
+        this.updateLiveSubtitleMainControlsVisibility();
     }
 
     initializeElements() {
@@ -77,10 +76,18 @@ class SubtitleManager {
         };
     }
 
+    /** Reflect Agent Settings → main UI: show overlay/mode only when Live Subtitles is enabled */
+    updateLiveSubtitleMainControlsVisibility() {
+        const wrap = document.getElementById('liveSubtitleMainControls');
+        if (!wrap || !this.elements.enableSubtitles) return;
+        wrap.classList.toggle('hidden', !this.elements.enableSubtitles.checked);
+    }
+
     setupEventListeners() {
         // Main subtitle toggle
         if (this.elements.enableSubtitles) {
             this.elements.enableSubtitles.addEventListener('change', (e) => {
+                this.updateLiveSubtitleMainControlsVisibility();
                 if (e.target.checked) {
                     // Check which mode is selected
                     if (this.elements.subtitleModeRTM && this.elements.subtitleModeRTM.checked) {
@@ -809,6 +816,24 @@ class SubtitleManager {
         this.updateSubtitle(text, speaker, true);
     }
 
+    /**
+     * Tokens from buildTokenWithRtm include RTC + RTM privileges; after RTC renewToken, update RTM too.
+     */
+    async renewSharedSignalingToken(newToken) {
+        const trimmed = newToken && String(newToken).trim();
+        if (!trimmed) return;
+        let rtm = this.conversationalAIAPI && this.conversationalAIAPI.rtmEngine;
+        if (!rtm && typeof ConversationalAIAPI !== "undefined" && ConversationalAIAPI.instance) {
+            rtm = ConversationalAIAPI.instance.rtmEngine;
+        }
+        if (!rtm || typeof rtm.renewToken !== "function") return;
+        try {
+            await rtm.renewToken(trimmed);
+        } catch (e) {
+            console.error("RTM renewToken failed (shared RTC+RTM token):", e);
+        }
+    }
+
     // Conversational AI integration methods
     async initializeConversationalAI(appId, channelName, token, uid, agentId = null) {
         // Store the agent ID for use in speaker identification
@@ -874,6 +899,22 @@ class SubtitleManager {
                 console.log('Logging into RTM...');
                 await rtmEngine.login({token});
                 console.log('RTM login successful');
+
+                if (!this._onRtmTokenPrivilegeWillExpire) {
+                    this._onRtmTokenPrivilegeWillExpire = () => {
+                        if (
+                            window.mediaProcessor &&
+                            typeof window.mediaProcessor.requestClientTokenRenewal === "function"
+                        ) {
+                            window.mediaProcessor.requestClientTokenRenewal();
+                        }
+                    };
+                }
+                this._rtmEngineTokenListener = rtmEngine;
+                rtmEngine.addEventListener(
+                    "tokenPrivilegeWillExpire",
+                    this._onRtmTokenPrivilegeWillExpire
+                );
                 
                 ConversationalAIAPI.init({
                     rtcEngine: window.mediaProcessor?.client || window.AgoraRTC.createClient({mode: "rtc", codec: "vp8"}),
@@ -924,6 +965,17 @@ class SubtitleManager {
     }
 
     async cleanupConversationalAI() {
+        if (this._rtmEngineTokenListener && this._onRtmTokenPrivilegeWillExpire) {
+            try {
+                this._rtmEngineTokenListener.removeEventListener(
+                    "tokenPrivilegeWillExpire",
+                    this._onRtmTokenPrivilegeWillExpire
+                );
+            } catch (_) {
+                /* noop */
+            }
+            this._rtmEngineTokenListener = null;
+        }
         if (this.conversationalAIAPI) {
             try {
                 await this.conversationalAIAPI.destroy();
@@ -1187,6 +1239,7 @@ class SubtitleManager {
         if (this.elements.enableSubtitles) {
             this.elements.enableSubtitles.checked = true;
         }
+        this.updateLiveSubtitleMainControlsVisibility();
         
         // Ensure RTM radio button is checked
         if (this.elements.subtitleModeRTM) {
@@ -1334,6 +1387,7 @@ class SubtitleManager {
         if (this.elements.enableSubtitles) {
             this.elements.enableSubtitles.checked = true;
         }
+        this.updateLiveSubtitleMainControlsVisibility();
         
         // Update message UI state to disable message buttons
         if (window.ui && typeof window.ui.updateMessageUIState === 'function') {
@@ -1828,6 +1882,7 @@ class SubtitleManager {
                 if (this.elements.enableSubtitles) {
                     this.elements.enableSubtitles.checked = false;
                 }
+                this.updateLiveSubtitleMainControlsVisibility();
             }
         }
     }
@@ -1849,6 +1904,7 @@ class SubtitleManager {
                 if (this.elements.enableSubtitles) {
                     this.elements.enableSubtitles.checked = false;
                 }
+                this.updateLiveSubtitleMainControlsVisibility();
             };
         }
 
@@ -1861,6 +1917,7 @@ class SubtitleManager {
                 if (this.elements.enableSubtitles) {
                     this.elements.enableSubtitles.checked = false;
                 }
+                this.updateLiveSubtitleMainControlsVisibility();
             };
         }
 
@@ -1900,6 +1957,7 @@ class SubtitleManager {
                     if (this.elements.enableSubtitles) {
                         this.elements.enableSubtitles.checked = false;
                     }
+                    this.updateLiveSubtitleMainControlsVisibility();
                 }
             };
         }

@@ -8,6 +8,9 @@ window.UI = class UI {
         this.agoraAPI = null;
         this.subtitleManager = null;
         this.params = {};
+        this.mllmParams = {};
+        this.asrParams = {};
+        this.ttsParams = {};
         this.mcpServers = {};
         this.lastAgentListCursor = null;
         this.agentListPageHistory = []; // History of accumulated results for back navigation
@@ -15,15 +18,19 @@ window.UI = class UI {
         this.agentListCumulativeCount = 0; // Total agents loaded across all pages
 
         // Track token generation times and expiry timers for convenience features
-        this.tokenGeneratedAt = { agent: null, client: null, sip: null };
-        this.tokenExpiryTimers = { agent: null, client: null, sip: null };
+        this.tokenGeneratedAt = { agent: null, client: null, sip: null, avatar: null };
+        this.tokenExpiryTimers = { agent: null, client: null, sip: null, avatar: null };
     }
 
     initialize(mediaProcessor, agoraAPI, subtitleManager = null) {
         this.mediaProcessor = mediaProcessor;
         this.agoraAPI = agoraAPI;
         this.subtitleManager = subtitleManager;
-        
+
+        if (window.FormSettingsPersistence) {
+            window.FormSettingsPersistence.applyFromStorage();
+        }
+
         this.setupEventListeners();
         this.setupMessageUIState();
         this.checkCredentials();
@@ -31,19 +38,83 @@ window.UI = class UI {
         this.setupDrawerListeners();
         // Initialize TTS vendor blocks visibility
         this.handleTtsVendorChange();
+        this.syncRestoredFormDependents();
         // Update base URL indicator
         this.updateBaseUrlIndicator();
 
         // Try to auto-generate agent + client tokens once channel + credentials exist
         this.autoGenerateAgentAndClientTokensIfPossible();
-        
+
+        if (window.FormSettingsPersistence) {
+            window.FormSettingsPersistence.attachSaveListeners();
+        }
+
         // Initialize message UI state after a short delay to ensure all elements are loaded
         setTimeout(() => {
             this.updateMessageUIState();
         }, 100);
-        
+
         // Initialize camera preview manager
         this.initializeCameraPreviewManager();
+    }
+
+    /** After restoring saved fields, refresh dependent UI (panels, vendors, tokens). */
+    syncRestoredFormDependents() {
+        if (typeof window.syncOptionalAgentSettingsPanels === "function") {
+            window.syncOptionalAgentSettingsPanels();
+        }
+        this.handleGeofenceAreaChange();
+        this.handleGeofenceExcludeChange();
+        document.getElementById("avatarVendor")?.dispatchEvent(new Event("change", { bubbles: true }));
+        document.getElementById("mllmVendor")?.dispatchEvent(new Event("change", { bubbles: true }));
+        document.getElementById("pipelineId")?.dispatchEvent(new Event("input", { bubbles: true }));
+        document.getElementById("rtcEncryptionMode")?.dispatchEvent(new Event("change", { bubbles: true }));
+        if (
+            window.subtitleManager &&
+            typeof window.subtitleManager.updateLiveSubtitleMainControlsVisibility === "function"
+        ) {
+            window.subtitleManager.updateLiveSubtitleMainControlsVisibility();
+        }
+        this.trySyncAvatarFieldsFromClient();
+        this.autoGenerateAgentAndClientTokensIfPossible();
+        this.autoConfigureAvatarIfPossible();
+    }
+
+    /** Match index.html AI Avatar enabled behavior without opening the token modal (e.g. after restore). */
+    trySyncAvatarFieldsFromClient() {
+        const enableAvatar = document.getElementById("enableAvatar");
+        if (!enableAvatar || !enableAvatar.checked) return;
+        const clientRtcUid = document.getElementById("clientRtcUid");
+        const remoteRtcUids = document.getElementById("remoteRtcUids");
+        if (clientRtcUid && !clientRtcUid.value.trim()) {
+            clientRtcUid.value = "1001";
+        }
+        if (remoteRtcUids && clientRtcUid) {
+            remoteRtcUids.value = clientRtcUid.value.trim() || "1001";
+        }
+        document.getElementById("clientUidNote")?.classList.remove("hidden");
+        document.getElementById("avatarUidNote")?.classList.remove("hidden");
+    }
+
+    /**
+     * When AI Avatar is on and app certificate + channel are set, pin avatar RTC UID to 1003 and mint token.
+     */
+    async autoConfigureAvatarIfPossible() {
+        try {
+            const { appId, appCertificate } = Utils.getStoredCredentials();
+            if (!appId || !appCertificate) return;
+            const enableAvatar = document.getElementById("enableAvatar");
+            if (!enableAvatar || !enableAvatar.checked) return;
+            const channelName = document.getElementById("agoraChannelName")?.value.trim();
+            if (!channelName) return;
+            const avatarUidInput = document.getElementById("avatarRtcUid");
+            if (avatarUidInput) {
+                avatarUidInput.value = "1003";
+            }
+            await this.generateAvatarRtcToken({ silent: true });
+        } catch (e) {
+            console.warn("Avatar auto-config skipped:", e);
+        }
     }
 
     setupEventListeners() {
@@ -95,6 +166,18 @@ window.UI = class UI {
         if (addParamBtn) {
             addParamBtn.addEventListener("click", () => this.addParamField());
         }
+        const addMllmParamBtn = document.getElementById("addMllmParamBtn");
+        if (addMllmParamBtn) {
+            addMllmParamBtn.addEventListener("click", () => this.addMllmParamField());
+        }
+        const addAsrParamBtn = document.getElementById("addAsrParamBtn");
+        if (addAsrParamBtn) {
+            addAsrParamBtn.addEventListener("click", () => this.addAsrParamField());
+        }
+        const addTtsParamBtn = document.getElementById("addTtsParamBtn");
+        if (addTtsParamBtn) {
+            addTtsParamBtn.addEventListener("click", () => this.addTtsParamField());
+        }
 
         // Enable Tools checkbox handler - use event delegation on document
         // This works even if elements are added later
@@ -117,6 +200,11 @@ window.UI = class UI {
         this.setupMessageUIState();
 
         // Credentials modal
+        const clearSavedFormSettingsBtn = document.getElementById("clearSavedFormSettingsBtn");
+        if (clearSavedFormSettingsBtn) {
+            clearSavedFormSettingsBtn.addEventListener("click", () => this.clearSavedFormSettingsAndReload());
+        }
+
         const setCredsBtn = document.getElementById("setCredsBtn");
         if (setCredsBtn) {
             setCredsBtn.addEventListener("click", () => this.openCredsModal());
@@ -833,6 +921,23 @@ window.UI = class UI {
         }
     }
 
+    clearSavedFormSettingsAndReload() {
+        const msg =
+            "Clear all locally saved Agent Settings (fields, checkboxes, drawer values) and reload the page? " +
+            "API credentials from \"Set API Credentials\" are not removed; channel name and tokens were never saved.";
+        if (!confirm(msg)) return;
+        const key =
+            window.FormSettingsPersistence && window.FormSettingsPersistence.STORAGE_KEY
+                ? window.FormSettingsPersistence.STORAGE_KEY
+                : "convo_ai_form_state_v1";
+        try {
+            localStorage.removeItem(key);
+        } catch (e) {
+            console.warn("Could not clear saved form settings:", e);
+        }
+        window.location.reload();
+    }
+
     openCredsModal() {
         const { customerId, customerSecret, appId, appCertificate } = Utils.getStoredCredentials();
         document.getElementById("customerId").value = customerId || '';
@@ -875,7 +980,8 @@ window.UI = class UI {
         }
     }
 
-    async generateAgoraRtcToken() {
+    async generateAgoraRtcToken(options = {}) {
+        const silent = options.silent === true;
         try {
             const { appId, appCertificate } = Utils.getStoredCredentials();
             if (!appId || !appCertificate) {
@@ -907,10 +1013,11 @@ window.UI = class UI {
             // Record generation time and schedule expiry warning
             this.tokenGeneratedAt.agent = Date.now();
             this.scheduleTokenExpiryWarning("agent");
-            alert("Token generated successfully!");
+            if (!silent) alert("Token generated successfully!");
         } catch (error) {
-            alert("Error generating token: " + error.message);
+            if (!silent) alert("Error generating token: " + error.message);
             console.error("Token generation error:", error);
+            if (silent) throw error;
         }
     }
 
@@ -968,6 +1075,8 @@ window.UI = class UI {
                 this.tokenGeneratedAt.client = Date.now();
                 this.scheduleTokenExpiryWarning("client");
             }
+
+            await this.autoConfigureAvatarIfPossible();
         } catch (e) {
             // Silent failure; log to console for debugging only
             console.error("Auto-generate agent/client tokens failed:", e);
@@ -975,14 +1084,13 @@ window.UI = class UI {
     }
 
     /**
-     * Schedule a warning dialog shortly before a locally generated token expires.
-     * Type is "agent" or "client". We only prompt when:
-     * - Not currently in a call (joinChannel button enabled / leaveChannel disabled)
-     * - No active agent (agentId field empty)
+     * Keep locally generated tokens fresh by auto-regenerating shortly before expiry.
+     * This runs in the background for generated tokens so manual actions (create/join)
+     * do not fail due to stale credentials.
      */
     scheduleTokenExpiryWarning(type) {
-        const TTL_SECONDS = 1800; // matches Utils.generateAgoraToken
-        const WARN_BEFORE_MS = 60 * 1000; // 1 minute before expiry
+        const TTL_SECONDS = 3600; // matches Utils.generateAgoraToken
+        const WARN_BEFORE_MS = 60 * 1000; // refresh 1 minute before expiry
 
         if (!this.tokenGeneratedAt || !this.tokenGeneratedAt[type]) return;
 
@@ -1003,59 +1111,68 @@ window.UI = class UI {
 
         this.tokenExpiryTimers[type] = setTimeout(async () => {
             try {
-                // Check "not in call": leaveChannel disabled or joinChannel enabled
-                const joinBtn = document.getElementById("joinChannel");
-                const leaveBtn = document.getElementById("leaveChannel");
-                const inCall = (leaveBtn && !leaveBtn.disabled) || (joinBtn && joinBtn.disabled);
-
-                // Check "no active agent": agentId field empty
-                const agentIdInput = document.getElementById("agentId");
-                const hasAgent = agentIdInput && agentIdInput.value && agentIdInput.value.trim() !== "";
-
-                if (inCall || hasAgent) {
-                    // Skip prompting if user is in a session; they can regenerate later
-                    return;
-                }
-
-                let label = "token";
-                if (type === "agent") label = "agent";
-                else if (type === "client") label = "client";
-                else if (type === "sip") label = "SIP";
-                const shouldRegen = window.confirm(
-                    `Your Agora ${label} token is about to expire. Regenerate it now so it stays valid?`
-                );
-                if (!shouldRegen) return;
-
                 if (type === "agent") {
-                    await this.generateAgoraRtcToken();
+                    await this.generateAgoraRtcToken({ silent: true });
                 } else if (type === "client") {
-                    await this.generateClientRtcToken();
+                    await this.generateClientRtcToken({ silent: true });
                 } else if (type === "sip") {
-                    await this.generateSipRtcToken();
+                    await this.generateSipRtcToken({ silent: true });
+                } else if (type === "avatar") {
+                    await this.generateAvatarRtcToken({ silent: true });
                 }
             } catch (e) {
-                console.error("Token expiry warning handler failed:", e);
+                console.error("Background token refresh failed:", e);
+                // Retry soon in case fields or credentials are filled shortly after failure.
+                if (this.tokenExpiryTimers[type]) {
+                    clearTimeout(this.tokenExpiryTimers[type]);
+                }
+                this.tokenExpiryTimers[type] = setTimeout(() => this.scheduleTokenExpiryWarning(type), 60 * 1000);
             }
         }, delayMs);
     }
 
-    async generateAvatarRtcToken() {
+    async ensureFreshManagedToken(type) {
+        const TTL_SECONDS = 3600;
+        const REFRESH_BEFORE_SECONDS = 60;
+        const generatedAt = this.tokenGeneratedAt ? this.tokenGeneratedAt[type] : null;
+        if (!generatedAt) return;
+
+        const refreshAt = generatedAt + (TTL_SECONDS - REFRESH_BEFORE_SECONDS) * 1000;
+        if (Date.now() < refreshAt) return;
+
+        if (type === "agent") {
+            await this.generateAgoraRtcToken({ silent: true });
+        } else if (type === "client") {
+            await this.generateClientRtcToken({ silent: true });
+        } else if (type === "sip") {
+            await this.generateSipRtcToken({ silent: true });
+        } else if (type === "avatar") {
+            await this.generateAvatarRtcToken({ silent: true });
+        }
+    }
+
+    /**
+     * @param {{ silent?: boolean }} options - When silent (auto-config / timers), missing cert/channel/UID is a no-op with no alerts.
+     *   When not silent (user clicked Generate), validation failures always alert so the user can fix setup.
+     */
+    async generateAvatarRtcToken(options = {}) {
+        const silent = options.silent === true;
         try {
             const { appId, appCertificate } = Utils.getStoredCredentials();
             if (!appId || !appCertificate) {
-                alert("Please set App ID and App Certificate in API Credentials first");
+                if (!silent) alert("Please set App ID and App Certificate in API Credentials first");
                 return;
             }
 
             const channelName = document.getElementById("agoraChannelName").value.trim();
             if (!channelName) {
-                alert("Please enter a channel name in Agent Settings");
+                if (!silent) alert("Please enter a channel name in Agent Settings");
                 return;
             }
 
             const avatarRtcUid = document.getElementById("avatarRtcUid").value.trim();
             if (!avatarRtcUid) {
-                alert("Please enter an Avatar RTC UID");
+                if (!silent) alert("Please enter an Avatar RTC UID");
                 return;
             }
 
@@ -1068,25 +1185,29 @@ window.UI = class UI {
             );
 
             document.getElementById("avatarRtcToken").value = token;
-            alert("Token generated successfully!");
+            this.tokenGeneratedAt.avatar = Date.now();
+            this.scheduleTokenExpiryWarning("avatar");
+            if (!silent) alert("Token generated successfully!");
         } catch (error) {
-            alert("Error generating token: " + error.message);
+            if (!silent) alert("Error generating token: " + error.message);
             console.error("Token generation error:", error);
+            if (silent) throw error;
         }
     }
 
-    async generateClientRtcToken() {
+    async generateClientRtcToken(options = {}) {
+        const silent = options.silent === true;
         try {
             const { appId, appCertificate } = Utils.getStoredCredentials();
             if (!appId || !appCertificate) {
-                alert("Please set App ID and App Certificate in API Credentials first");
-                return;
+                if (!silent) alert("Please set App ID and App Certificate in API Credentials first");
+                return null;
             }
 
             const channelName = document.getElementById("agoraChannelName").value.trim();
             if (!channelName) {
-                alert("Please enter a channel name in Agent Settings");
-                return;
+                if (!silent) alert("Please enter a channel name in Agent Settings");
+                return null;
             }
 
             const clientRtcUidInput = document.getElementById("clientRtcUid");
@@ -1107,14 +1228,18 @@ window.UI = class UI {
             // Record generation time and schedule expiry warning
             this.tokenGeneratedAt.client = Date.now();
             this.scheduleTokenExpiryWarning("client");
-            alert("Token generated successfully!");
+            if (!silent) alert("Token generated successfully!");
+            return token;
         } catch (error) {
-            alert("Error generating token: " + error.message);
+            if (!silent) alert("Error generating token: " + error.message);
             console.error("Token generation error:", error);
+            if (silent) throw error;
+            return null;
         }
     }
 
-    async generateSipRtcToken() {
+    async generateSipRtcToken(options = {}) {
+        const silent = options.silent === true;
         try {
             const { appId, appCertificate } = Utils.getStoredCredentials();
             if (!appId || !appCertificate) {
@@ -1146,10 +1271,11 @@ window.UI = class UI {
             // Record generation time and schedule expiry warning
             this.tokenGeneratedAt.sip = Date.now();
             this.scheduleTokenExpiryWarning("sip");
-            alert("Token generated successfully!");
+            if (!silent) alert("Token generated successfully!");
         } catch (error) {
-            alert("Error generating token: " + error.message);
+            if (!silent) alert("Error generating token: " + error.message);
             console.error("Token generation error:", error);
+            if (silent) throw error;
         }
     }
 
@@ -1195,12 +1321,15 @@ window.UI = class UI {
         const { appId } = Utils.getStoredCredentials();
         const channelName = document.getElementById("agoraChannelName").value.trim();
         const clientRtcUid = document.getElementById("clientRtcUid").value.trim();
-        const clientRtcToken = document.getElementById("clientRtcToken").value.trim();
         const enableStringUid = document.getElementById("enableStringUid").checked;
         const agentId = document.getElementById("uniqueName").value.trim(); // Get agent ID from unique name field
 
         try {
-            // Convert empty string to null for token
+            await this.ensureFreshManagedToken("client");
+            const clientRtcToken = document
+                .getElementById("clientRtcToken")
+                .value.trim();
+            // Convert empty string to null for token (read after refresh so join uses updated value)
             const token = clientRtcToken || null;
             
             // Convert UID to integer unless string UID is enabled
@@ -1212,7 +1341,21 @@ window.UI = class UI {
                 }
             }
             
-            await this.mediaProcessor.joinChannel(appId, channelName, token, uid, this.subtitleManager, agentId);
+            const renewClientToken = async () => {
+                const fresh =
+                    (await this.generateClientRtcToken({ silent: true })) ||
+                    document.getElementById("clientRtcToken").value.trim();
+                return fresh || null;
+            };
+            await this.mediaProcessor.joinChannel(
+                appId,
+                channelName,
+                token,
+                uid,
+                this.subtitleManager,
+                agentId,
+                renewClientToken
+            );
             document.getElementById("joinChannel").disabled = true;
             document.getElementById("leaveChannel").disabled = false;
             
@@ -1270,6 +1413,14 @@ window.UI = class UI {
             
             // Reset mic and camera button states
             this.resetMicAndCameraStates();
+
+            // Treat in-session token as stale after disconnect; regenerate for next join
+            try {
+                this.tokenGeneratedAt.client = null;
+                await this.generateClientRtcToken({ silent: true });
+            } catch (e) {
+                console.warn("Post-leave client token refresh skipped:", e);
+            }
         } catch (error) {
             alert(error.message);
         }
@@ -1328,6 +1479,7 @@ window.UI = class UI {
             "elevenLabsTtsKeyBlock",
             "elevenLabsBaseUrlBlock",
             "elevenLabsSampleRateBlock",
+            "elevenLabsSpeedBlock",
             "elevenLabsStabilityBlock",
             "elevenLabsSimilarityBoostBlock",
             "elevenLabsStyleBlock",
@@ -1773,6 +1925,234 @@ window.UI = class UI {
         delete this.params[id];
     }
 
+    addMllmParamField() {
+        const container = document.getElementById("mllm-param-container");
+        const paramId = "mllm-param-" + Object.keys(this.mllmParams).length;
+
+        const div = document.createElement("div");
+        div.classList.add("flex", "gap-2", "items-center");
+        div.id = paramId;
+
+        div.innerHTML = `
+            <select class="border p-2 w-1/5 rounded bg-gray-800 text-white">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="array">Array</option>
+                <option value="object">Object</option>
+            </select>
+            <input type="text" placeholder="Key" class="border p-2 w-1/4 rounded bg-gray-800 text-white">
+            <input type="text" placeholder="Value" class="border p-2 w-2/5 rounded bg-gray-800 text-white" id="${paramId}-value">
+            <button class="text-red-500">❌</button>
+        `;
+
+        const select = div.querySelector('select');
+        const keyInput = div.querySelector('input[placeholder="Key"]');
+        const valueInput = div.querySelector('input[placeholder="Value"]');
+        const removeBtn = div.querySelector('button');
+
+        select.addEventListener('change', () => this.updateMllmParam(paramId, select, 'type'));
+        keyInput.addEventListener('input', () => this.updateMllmParam(paramId, keyInput, 'key'));
+        valueInput.addEventListener('input', () => this.updateMllmParam(paramId, valueInput, 'value'));
+        removeBtn.addEventListener('click', () => this.removeMllmParam(paramId));
+
+        container.appendChild(div);
+        this.mllmParams[paramId] = { key: "", type: "string", value: "" };
+    }
+
+    updateMllmParam(id, input, fieldType) {
+        if (fieldType === "key") this.mllmParams[id].key = input.value;
+
+        if (fieldType === "type") {
+            this.mllmParams[id].type = input.value;
+            let valueInput = document.getElementById(`${id}-value`);
+
+            if (input.value === "array") {
+                valueInput.placeholder = "Comma-separated values";
+            } else if (input.value === "object") {
+                valueInput.placeholder = "Enter JSON";
+                valueInput.value = "{}";
+            } else {
+                valueInput.placeholder = "Value";
+                valueInput.value = "";
+            }
+        }
+
+        if (fieldType === "value") {
+            let type = this.mllmParams[id].type;
+            if (type === "array") {
+                this.mllmParams[id].value = input.value.split(",").map(v => v.trim());
+            } else if (type === "number") {
+                this.mllmParams[id].value = Number(input.value);
+            } else if (type === "object") {
+                try {
+                    this.mllmParams[id].value = JSON.parse(input.value);
+                    input.style.borderColor = "green";
+                } catch (e) {
+                    input.style.borderColor = "red";
+                }
+            } else {
+                this.mllmParams[id].value = input.value;
+            }
+        }
+    }
+
+    removeMllmParam(id) {
+        document.getElementById(id).remove();
+        delete this.mllmParams[id];
+    }
+
+    addAsrParamField() {
+        const container = document.getElementById("asr-param-container");
+        const paramId = "asr-param-" + Object.keys(this.asrParams).length;
+
+        const div = document.createElement("div");
+        div.classList.add("flex", "gap-2", "items-center");
+        div.id = paramId;
+
+        div.innerHTML = `
+            <select class="border p-2 w-1/5 rounded bg-gray-800 text-white">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="array">Array</option>
+                <option value="object">Object</option>
+            </select>
+            <input type="text" placeholder="Key" class="border p-2 w-1/4 rounded bg-gray-800 text-white">
+            <input type="text" placeholder="Value" class="border p-2 w-2/5 rounded bg-gray-800 text-white" id="${paramId}-value">
+            <button class="text-red-500">❌</button>
+        `;
+
+        const select = div.querySelector('select');
+        const keyInput = div.querySelector('input[placeholder="Key"]');
+        const valueInput = div.querySelector('input[placeholder="Value"]');
+        const removeBtn = div.querySelector('button');
+
+        select.addEventListener('change', () => this.updateAsrParam(paramId, select, 'type'));
+        keyInput.addEventListener('input', () => this.updateAsrParam(paramId, keyInput, 'key'));
+        valueInput.addEventListener('input', () => this.updateAsrParam(paramId, valueInput, 'value'));
+        removeBtn.addEventListener('click', () => this.removeAsrParam(paramId));
+
+        container.appendChild(div);
+        this.asrParams[paramId] = { key: "", type: "string", value: "" };
+    }
+
+    updateAsrParam(id, input, fieldType) {
+        if (fieldType === "key") this.asrParams[id].key = input.value;
+
+        if (fieldType === "type") {
+            this.asrParams[id].type = input.value;
+            let valueInput = document.getElementById(`${id}-value`);
+
+            if (input.value === "array") {
+                valueInput.placeholder = "Comma-separated values";
+            } else if (input.value === "object") {
+                valueInput.placeholder = "Enter JSON";
+                valueInput.value = "{}";
+            } else {
+                valueInput.placeholder = "Value";
+                valueInput.value = "";
+            }
+        }
+
+        if (fieldType === "value") {
+            let type = this.asrParams[id].type;
+            if (type === "array") {
+                this.asrParams[id].value = input.value.split(",").map(v => v.trim());
+            } else if (type === "number") {
+                this.asrParams[id].value = Number(input.value);
+            } else if (type === "object") {
+                try {
+                    this.asrParams[id].value = JSON.parse(input.value);
+                    input.style.borderColor = "green";
+                } catch (e) {
+                    input.style.borderColor = "red";
+                }
+            } else {
+                this.asrParams[id].value = input.value;
+            }
+        }
+    }
+
+    removeAsrParam(id) {
+        document.getElementById(id).remove();
+        delete this.asrParams[id];
+    }
+
+    addTtsParamField() {
+        const container = document.getElementById("tts-param-container");
+        const paramId = "tts-param-" + Object.keys(this.ttsParams).length;
+
+        const div = document.createElement("div");
+        div.classList.add("flex", "gap-2", "items-center");
+        div.id = paramId;
+
+        div.innerHTML = `
+            <select class="border p-2 w-1/5 rounded bg-gray-800 text-white">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="array">Array</option>
+                <option value="object">Object</option>
+            </select>
+            <input type="text" placeholder="Key" class="border p-2 w-1/4 rounded bg-gray-800 text-white">
+            <input type="text" placeholder="Value" class="border p-2 w-2/5 rounded bg-gray-800 text-white" id="${paramId}-value">
+            <button class="text-red-500">❌</button>
+        `;
+
+        const select = div.querySelector('select');
+        const keyInput = div.querySelector('input[placeholder="Key"]');
+        const valueInput = div.querySelector('input[placeholder="Value"]');
+        const removeBtn = div.querySelector('button');
+
+        select.addEventListener('change', () => this.updateTtsParam(paramId, select, 'type'));
+        keyInput.addEventListener('input', () => this.updateTtsParam(paramId, keyInput, 'key'));
+        valueInput.addEventListener('input', () => this.updateTtsParam(paramId, valueInput, 'value'));
+        removeBtn.addEventListener('click', () => this.removeTtsParam(paramId));
+
+        container.appendChild(div);
+        this.ttsParams[paramId] = { key: "", type: "string", value: "" };
+    }
+
+    updateTtsParam(id, input, fieldType) {
+        if (fieldType === "key") this.ttsParams[id].key = input.value;
+
+        if (fieldType === "type") {
+            this.ttsParams[id].type = input.value;
+            let valueInput = document.getElementById(`${id}-value`);
+
+            if (input.value === "array") {
+                valueInput.placeholder = "Comma-separated values";
+            } else if (input.value === "object") {
+                valueInput.placeholder = "Enter JSON";
+                valueInput.value = "{}";
+            } else {
+                valueInput.placeholder = "Value";
+                valueInput.value = "";
+            }
+        }
+
+        if (fieldType === "value") {
+            let type = this.ttsParams[id].type;
+            if (type === "array") {
+                this.ttsParams[id].value = input.value.split(",").map(v => v.trim());
+            } else if (type === "number") {
+                this.ttsParams[id].value = Number(input.value);
+            } else if (type === "object") {
+                try {
+                    this.ttsParams[id].value = JSON.parse(input.value);
+                    input.style.borderColor = "green";
+                } catch (e) {
+                    input.style.borderColor = "red";
+                }
+            } else {
+                this.ttsParams[id].value = input.value;
+            }
+        }
+    }
+
+    removeTtsParam(id) {
+        document.getElementById(id).remove();
+        delete this.ttsParams[id];
+    }
+
     handleEnableToolsChange() {
         const enableToolsCheckbox = document.getElementById("enableTools");
         const mcpServersConfig = document.getElementById("mcpServersConfig");
@@ -1945,6 +2325,7 @@ window.UI = class UI {
         }
 
         try {
+            await this.ensureFreshManagedToken("agent");
             // Validate RTM configuration before agent creation if subtitles are enabled
             if (this.subtitleManager) {
                 const isRTMConfigValid = this.subtitleManager.validateRTMConfigurationForAgentCreation();
@@ -1955,8 +2336,9 @@ window.UI = class UI {
             
             const formData = Utils.getFormData();
             Utils.validateFormData(formData);
-            const customParams = Utils.getCustomParams();
-            const agentConfig = Utils.buildAgentConfig(formData, customParams);
+            const llmCustomParams = Utils.getCustomParams();
+            const mllmCustomParams = Utils.getMllmCustomParams();
+            const agentConfig = Utils.buildAgentConfig(formData, llmCustomParams, mllmCustomParams);
 
             const { customerId, customerSecret } = Utils.getStoredCredentials();
             const data = await this.agoraAPI.createAgent(customerId, customerSecret, agentConfig);
@@ -2011,6 +2393,7 @@ window.UI = class UI {
         }
 
         try {
+            await this.ensureFreshManagedToken("agent");
             // Validate RTM configuration before agent update if subtitles are enabled
             if (this.subtitleManager) {
                 const isRTMConfigValid = this.subtitleManager.validateRTMConfigurationForAgentCreation();
@@ -2026,8 +2409,9 @@ window.UI = class UI {
             }
             const agentId = agentIdElement.value.trim();
             const formData = Utils.getFormData();
-            const customParams = Utils.getCustomParams();
-            const config = Utils.buildAgentConfig(formData, customParams);
+            const llmCustomParams = Utils.getCustomParams();
+            const mllmCustomParams = Utils.getMllmCustomParams();
+            const config = Utils.buildAgentConfig(formData, llmCustomParams, mllmCustomParams);
             
             // Check if MLLM is enabled
             const enableMllmElement = document.getElementById('enableMllm');
@@ -2040,7 +2424,7 @@ window.UI = class UI {
                     properties: {
                         token: config.properties.token,
                         mllm: {
-                            ...(Object.keys(customParams).length > 0 ? { params: customParams } : {}) // Only include params if customParams is not empty
+                            ...(Object.keys(mllmCustomParams).length > 0 ? { params: mllmCustomParams } : {}) // Only include params if mllmCustomParams is not empty
                         }
                     }
                 };
@@ -2423,7 +2807,7 @@ window.UI = class UI {
 
     openDrawer(drawerId) {
         // Close all drawers first
-        ['llmDrawer', 'advDrawer', 'ttsDrawer', 'mllmDrawer', 'avatarDrawer'].forEach(id => {
+        ['asrConfigBox', 'llmDrawer', 'advDrawer', 'ttsDrawer', 'mllmDrawer', 'avatarDrawer'].forEach(id => {
             const drawer = document.getElementById(id);
             const backdrop = document.getElementById(id + 'Backdrop');
             if (drawer) drawer.classList.add('hidden');
@@ -2447,8 +2831,10 @@ window.UI = class UI {
         if (drawerId === 'ttsDrawer') btnId = 'ttsSettingsBtn';
         if (drawerId === 'mllmDrawer') btnId = 'mllmSettingsBtn';
         if (drawerId === 'avatarDrawer') btnId = 'avatarSettingsBtn';
+        if (drawerId === 'asrConfigBox') btnId = 'asrSettingsBtn';
         const btn = document.getElementById(btnId);
         const drawer = document.getElementById(drawerId);
+        if (!btn || !drawer) return;
         // Use the same absolute positioning logic for all drawers
         const btnRect = btn.getBoundingClientRect();
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -2472,7 +2858,8 @@ window.UI = class UI {
             }
         }, 0);
         drawer.classList.remove('hidden');
-        document.getElementById(drawerId + 'Backdrop').classList.remove('hidden');
+        const backdrop = document.getElementById(drawerId + 'Backdrop');
+        if (backdrop) backdrop.classList.remove('hidden');
         
         // Attach tooltip listeners to this drawer
         if (window.attachTooltipListenersToDrawer) {
@@ -2486,6 +2873,10 @@ window.UI = class UI {
     }
 
     setupDrawerListeners() {
+        // ASR
+        document.getElementById('asrSettingsBtn').addEventListener('click', () => this.openDrawer('asrConfigBox'));
+        document.getElementById('asrConfigBoxBackdrop').addEventListener('click', () => this.closeDrawer('asrConfigBox'));
+        document.querySelector('#asrConfigBox .drawer-close').addEventListener('click', () => this.closeDrawer('asrConfigBox'));
         // LLM
         document.getElementById('llmSettingsBtn').addEventListener('click', () => this.openDrawer('llmDrawer'));
         document.getElementById('llmDrawerBackdrop').addEventListener('click', () => this.closeDrawer('llmDrawer'));

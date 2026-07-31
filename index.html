@@ -8,6 +8,7 @@
   <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@2.2.2/agora-rtm.js"></script>
   <script src="src/lib/microsoftVoicesByLang.js"></script>
+  <script src="src/lib/minimaxVoicesByLang.js"></script>
   <link rel="stylesheet" href="src/css/styles.css?v=1.3">
   <link rel="stylesheet" href="src/css/modern-ui-library.css">
   <!-- Critical autofill fix - must be inline and load early to override browser autofill styles -->
@@ -272,6 +273,25 @@
           </div>
         </div>
       </div>
+
+          <div id="manualTurnControlPanel" class="w-full p-4 bg-gray-700 rounded-lg border border-emerald-700/50 space-y-3">
+            <div class="has-tooltip relative">
+              <h3 class="text-sm font-semibold text-gray-300">Manual Turn Control</h3>
+              <div class="tooltip">Send manual Start of Speech (SoS) and End of Speech (EoS) RTM messages while the agent is running.</div>
+            </div>
+            <p id="manualTurnHint" class="text-xs text-gray-400"></p>
+            <div class="grid grid-cols-2 gap-2">
+              <div id="manualTurnSosWrap" class="has-tooltip relative">
+                <button id="manualTurnSosBtn" type="button" class="modern-btn modern-btn-primary w-full">Start (SoS)</button>
+                <div id="manualTurnSosTooltip" class="tooltip">Enable Turn Detection v2.4 and set SoS mode to Manual in Agent Settings.</div>
+              </div>
+              <div id="manualTurnEosWrap" class="has-tooltip relative">
+                <button id="manualTurnEosBtn" type="button" class="modern-btn modern-btn-secondary w-full">End (EoS)</button>
+                <div id="manualTurnEosTooltip" class="tooltip">Enable Turn Detection v2.4 and set EoS mode to Manual in Agent Settings.</div>
+              </div>
+            </div>
+            <div id="manualTurnStatus" class="hidden text-xs text-gray-300 break-words"></div>
+          </div>
                   <!-- Query Agents Section -->
                   <div class="w-full p-4 bg-gray-700 rounded-lg">
                     <h3 class="text-sm font-semibold mb-3 text-gray-300">Query Agents</h3>
@@ -285,7 +305,7 @@
                         <div class="tooltip">Enter the ID of the agent you want to query</div>
                       </div>
 
-                      <div class="grid grid-cols-1 gap-2">
+                      <div class="grid grid-cols-2 gap-2">
                         <div class="has-tooltip relative">
         <button
                             id="queryAgentBtn"
@@ -315,6 +335,7 @@
                           </button>
                           <div class="tooltip">Retrieve the conversation history between the user and the Conversational AI agent while the agent is running. Shows messages with role (user/assistant) and content.</div>
                         </div>
+
                         <div class="has-tooltip relative">
                           <button
                             id="getConversationTurnsBtn"
@@ -322,19 +343,49 @@
                           >
                             Query Conversation Turns
                           </button>
-                          <div class="tooltip">Get per-turn start/end events and latency metrics for a completed session. Only available for sessions in the last 7 days.</div>
+                          <div class="tooltip">Get per-turn start/end events and latency metrics (paginated, default page 1, up to 50 turns per page). Only available for sessions in the last 7 days.</div>
                         </div>
+                      </div>
 
+                      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 px-2">
+                        <div class="has-tooltip relative">
+                          <button
+                            id="toggleConversationTurnsOptions"
+                            class="text-xs text-gray-400 hover:text-gray-300 underline focus:outline-none"
+                            type="button"
+                          >
+                            <span id="toggleConversationTurnsOptionsText">Show Conversation Turn Options</span>
+                          </button>
+                          <div class="tooltip">Pagination and fetch-all settings for Query Conversation Turns. Defaults: page 1, 50 turns per page.</div>
+                        </div>
                         <div class="has-tooltip relative">
                           <button
                             id="toggleAgentListFilters"
-                            class="w-full text-xs text-gray-400 hover:text-gray-300 underline focus:outline-none text-left p-2"
+                            class="text-xs text-gray-400 hover:text-gray-300 underline focus:outline-none"
                             type="button"
                           >
                             <span id="toggleAgentListFiltersText">Show Advanced Filters</span>
                           </button>
                           <div class="tooltip">Advanced filters only apply to "Retrieve Agent List". Fill only the fields you need - all fields are optional.</div>
                         </div>
+                      </div>
+
+                      <div id="conversationTurnsOptions" class="hidden mt-2 p-3 bg-gray-800 rounded border border-gray-600 space-y-3">
+                        <div class="text-xs text-gray-500 italic">Defaults: page 1, up to 50 turns per page</div>
+                        <div id="turnsPaginationFields" class="grid grid-cols-2 gap-2">
+                          <div>
+                            <label class="text-xs text-gray-400 block mb-1" for="turnsPageIndex">page_index</label>
+                            <input id="turnsPageIndex" type="number" min="1" value="1" class="w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600" />
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-400 block mb-1" for="turnsPageSize">page_size (max 50)</label>
+                            <input id="turnsPageSize" type="number" min="1" max="50" value="50" class="w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600" />
+                          </div>
+                        </div>
+                        <label class="flex items-start gap-2 text-xs text-gray-300 cursor-pointer">
+                          <input type="checkbox" id="turnsFetchAllPages" class="mt-0.5 rounded bg-gray-700 border-gray-600 shrink-0" />
+                          <span>Fetch all pages (sessions with more than 50 turns)</span>
+                        </label>
                       </div>
 
                       <!-- Advanced Filters Panel - Below Buttons -->
@@ -347,6 +398,7 @@
                               <input
                                 id="agentListFilterFromTime"
                                 type="datetime-local"
+                                autocomplete="off"
                                 class="w-full p-2 rounded bg-gray-700 text-white text-sm"
                               />
                             </div>
@@ -355,6 +407,7 @@
                               <input
                                 id="agentListFilterToTime"
                                 type="datetime-local"
+                                autocomplete="off"
                                 class="w-full p-2 rounded bg-gray-700 text-white text-sm"
                               />
                               <span class="text-xs text-gray-500 mt-1 block">(auto-filled with current time)</span>
@@ -374,12 +427,11 @@
                                 id="agentListFilterState"
                                 class="w-full p-2 rounded bg-gray-700 text-white text-sm"
                               >
-                                <option value="">All States</option>
                                 <option value="0">IDLE</option>
                                 <option value="1">STARTING</option>
-                                <option value="2" selected>RUNNING</option>
+                                <option value="2">RUNNING</option>
                                 <option value="3">STOPPING</option>
-                                <option value="4">STOPPED</option>
+                                <option value="4" selected>STOPPED</option>
                                 <option value="5">RECOVERING</option>
                                 <option value="6">FAILED</option>
                               </select>
@@ -439,7 +491,7 @@
                       <span id="copyQueryResponseMsg" class="absolute top-2 right-10 text-green-400 text-xs hidden" style="z-index:10;">Copied!</span>
                       <pre
                         id="queryResponse"
-                        class="p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto"
+                        class="p-2 bg-gray-800 rounded text-sm min-h-[100px] max-h-[200px] overflow-auto break-words whitespace-pre-wrap break-all"
                       >                      </pre>
                     </div>
                   </div>
@@ -789,10 +841,11 @@
                   <div class="has-tooltip relative">
                     <label class="text-xs text-gray-300 block mb-1">on_listening_action</label>
                     <select id="thinkOnListeningAction" class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500">
-                      <option value="inject" selected>inject</option>
+                      <option value="interrupt" selected>interrupt</option>
+                      <option value="inject">inject</option>
                       <option value="ignore">ignore</option>
                     </select>
-                    <div class="tooltip">Behavior while agent is listening.</div>
+                    <div class="tooltip">Behavior while agent is listening. Default is interrupt; use inject to queue without interrupting the current flow.</div>
                   </div>
                   <div class="has-tooltip relative">
                     <label class="text-xs text-gray-300 block mb-1">on_thinking_action</label>
@@ -1428,8 +1481,8 @@
             </select>
             <div class="flex items-center has-tooltip-drawer">
               <input type="checkbox" id="expSetLlmGreetingInterruptable" class="mr-1 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
-              <label for="expLlmGreetingInterruptable" class="text-sm font-medium" style="margin-left:0;">greeting_interruptable</label>
-              <span class="tooltip-drawer hidden">Make greeting uninterruptable</span>
+              <label for="expLlmGreetingInterruptable" class="text-sm font-medium" style="margin-left:0;">greeting_configs.interruptable</label>
+              <span class="tooltip-drawer hidden">Nested under greeting_configs (not top-level greeting_interruptable)</span>
             </div>
             <select id="expLlmGreetingInterruptable" class="w-full p-1 rounded bg-gray-700 text-white" disabled>
               <option value="true">True</option>
@@ -1562,7 +1615,7 @@
   </div>
 
   <!-- JavaScript Modules -->
-  <script src="src/js/form-settings-persistence.js?v=1"></script>
+  <script src="src/js/form-settings-persistence.js?v=3"></script>
   <script>
     // Initialize components after all scripts are loaded
     document.addEventListener('DOMContentLoaded', function() {
@@ -1794,6 +1847,26 @@
     });
     }
 
+    function syncTurnsPaginationUi() {
+      const fetchAllEl = document.getElementById('turnsFetchAllPages');
+      const paginationWrap = document.getElementById('turnsPaginationFields');
+      const pageIndexEl = document.getElementById('turnsPageIndex');
+      const pageSizeEl = document.getElementById('turnsPageSize');
+      const fetchAll = !!(fetchAllEl && fetchAllEl.checked);
+      if (paginationWrap) {
+        paginationWrap.classList.toggle('opacity-50', fetchAll);
+        paginationWrap.classList.toggle('pointer-events-none', fetchAll);
+      }
+      if (pageIndexEl) pageIndexEl.disabled = fetchAll;
+      if (pageSizeEl) pageSizeEl.disabled = fetchAll;
+    }
+    const turnsFetchAllPagesEl = document.getElementById('turnsFetchAllPages');
+    if (turnsFetchAllPagesEl) {
+      turnsFetchAllPagesEl.addEventListener('change', syncTurnsPaginationUi);
+      syncTurnsPaginationUi();
+    }
+    window.syncTurnsPaginationUi = syncTurnsPaginationUi;
+
     // Conversation Turns button click handler
     const getConversationTurnsBtn = document.getElementById('getConversationTurnsBtn');
     if (getConversationTurnsBtn) {
@@ -1811,7 +1884,21 @@
         try {
           const { customerId, customerSecret } = window.Utils.getStoredCredentials();
           const activeAgoraAPI = (window.ui && window.ui.agoraAPI) ? window.ui.agoraAPI : agoraAPI;
-          const response = await activeAgoraAPI.getConversationTurns(customerId, customerSecret, agentId.value);
+          const pageIndexEl = document.getElementById('turnsPageIndex');
+          const pageSizeEl = document.getElementById('turnsPageSize');
+          const fetchAllEl = document.getElementById('turnsFetchAllPages');
+          const pageIndex = pageIndexEl ? parseInt(pageIndexEl.value, 10) || 1 : 1;
+          const pageSize = pageSizeEl ? Math.min(50, Math.max(1, parseInt(pageSizeEl.value, 10) || 50)) : 50;
+          const fetchAll = fetchAllEl ? fetchAllEl.checked : false;
+          let response;
+          if (fetchAll && typeof activeAgoraAPI.getAllConversationTurns === 'function') {
+            response = await activeAgoraAPI.getAllConversationTurns(customerId, customerSecret, agentId.value, { page_size: pageSize });
+          } else {
+            response = await activeAgoraAPI.getConversationTurns(customerId, customerSecret, agentId.value, {
+              page_index: pageIndex,
+              page_size: pageSize
+            });
+          }
           if (queryResponse) {
             queryResponse.textContent = JSON.stringify(response, null, 2);
           }
@@ -1875,7 +1962,7 @@
           const { customerId, customerSecret } = window.Utils.getStoredCredentials();
           const activeAgoraAPI = (window.ui && window.ui.agoraAPI) ? window.ui.agoraAPI : agoraAPI;
           const response = await activeAgoraAPI.sendCustomInstruction(customerId, customerSecret, agentId.value, instruction, {
-            on_listening_action: onListeningActionInput ? onListeningActionInput.value : 'inject',
+            on_listening_action: onListeningActionInput ? onListeningActionInput.value : 'interrupt',
             on_thinking_action: onThinkingActionInput ? onThinkingActionInput.value : 'interrupt',
             on_speaking_action: onSpeakingActionInput ? onSpeakingActionInput.value : 'ignore',
             interruptable: interruptableInput ? interruptableInput.value === 'true' : true,
@@ -3173,16 +3260,27 @@
 
     // Handle avatar vendor change for vendor-specific fields
     const anamSettings = document.getElementById('anamSettings');
-    if (avatarVendor && heygenSettings) {
-    avatarVendor.addEventListener('change', function() {
-      const v = this.value;
+    const genericAvatarSettings = document.getElementById('genericAvatarSettings');
+    const lemonsliceAvatarSettings = document.getElementById('lemonsliceAvatarSettings');
+    const avatarIdField = document.getElementById('avatarId');
+    const avatarIdBlock = avatarIdField ? avatarIdField.closest('.has-tooltip') : null;
+    function syncAvatarVendorFields(v) {
       heygenSettings.classList.toggle('hidden', v !== 'heygen' && v !== 'liveavatar');
       if (anamSettings) anamSettings.classList.toggle('hidden', v !== 'anam');
+      if (genericAvatarSettings) genericAvatarSettings.classList.toggle('hidden', v !== 'generic');
+      if (lemonsliceAvatarSettings) lemonsliceAvatarSettings.classList.toggle('hidden', v !== 'lemonslice');
+      // LemonSlice hardcodes avatar_id to "lemonslice" in the request payload
+      if (avatarIdBlock) avatarIdBlock.classList.toggle('hidden', v === 'lemonslice');
+      if (v === 'lemonslice' && avatarIdField && !avatarIdField.value.trim()) {
+        avatarIdField.value = 'lemonslice';
+      }
+    }
+    if (avatarVendor && heygenSettings) {
+    avatarVendor.addEventListener('change', function() {
+      syncAvatarVendorFields(this.value);
     });
     // Initial sync in case vendor already set (e.g. loaded config)
-    const v = avatarVendor.value;
-    heygenSettings.classList.toggle('hidden', v !== 'heygen' && v !== 'liveavatar');
-    if (anamSettings) anamSettings.classList.toggle('hidden', v !== 'anam');
+    syncAvatarVendorFields(avatarVendor.value);
     }
 
     // Handle UID changes when AI Avatar is enabled
@@ -3217,53 +3315,14 @@
       const avatarRtcUid = document.getElementById('avatarRtcUid');
 
       if (this.checked) {
-        // Show Agora token requirement alert
-        const agoraTokenModal = document.getElementById('agoraTokenModal');
-        agoraTokenModal.classList.remove('hidden');
-
-        // Show placeholder, hide image when AI Avatar is enabled
-        avatarImage.style.display = 'none';
-        avatarVideo.style.display = 'none';
-        const avatarPlaceholder = document.getElementById('avatarPlaceholder');
-        avatarPlaceholder.style.display = 'flex';
-        avatarPlaceholder.innerHTML = `
-          <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-            <!-- Background circle -->
-            <circle cx="60" cy="60" r="50" fill="none" stroke="#00ffff" stroke-width="2" opacity="0.3"/>
-            <!-- AI Icon -->
-            <g transform="translate(60, 45)">
-              <!-- Brain/Neural network representation -->
-              <circle cx="0" cy="0" r="8" fill="none" stroke="#00ffff" stroke-width="1.5"/>
-              <circle cx="-12" cy="-8" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
-              <circle cx="12" cy="-8" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
-              <circle cx="-8" cy="12" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
-              <circle cx="8" cy="12" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
-              <!-- Connection lines -->
-              <line x1="-12" y1="-8" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
-              <line x1="12" y1="-8" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
-              <line x1="-8" y1="12" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
-              <line x1="8" y1="12" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
-            </g>
-            <!-- Text -->
-            <text x="60" y="85" text-anchor="middle" fill="#00ffff" font-family="Arial, sans-serif" font-size="12" font-weight="bold">AI AVATAR</text>
-          </svg>
-        `;
-        console.log('AI Avatar enabled - SVG should be visible');
-
-        // Set required UIDs for AI Avatar
-        if (!clientRtcUid.value.trim()) {
-          clientRtcUid.value = '1001'; // Default client UID
+        if (!window.__formSettingRestoreSync) {
+          const agoraTokenModal = document.getElementById('agoraTokenModal');
+          if (agoraTokenModal) agoraTokenModal.classList.remove('hidden');
         }
 
-        // Show note about client UID requirement
-        document.getElementById('clientUidNote').classList.remove('hidden');
-
-        // Set remote RTC UIDs to include only the client UID (for agent configuration)
-        const clientUid = clientRtcUid.value.trim() || '1001';
-        remoteRtcUids.value = clientUid;
-
-        // Show note about automatic UID setting
-        document.getElementById('avatarUidNote').classList.remove('hidden');
+        if (window.ui && typeof window.ui.applyEnableAvatarUiIfChecked === 'function') {
+          window.ui.applyEnableAvatarUiIfChecked();
+        }
 
         if (window.ui && typeof window.ui.autoConfigureAvatarIfPossible === 'function') {
           window.ui.autoConfigureAvatarIfPossible();
@@ -3304,7 +3363,7 @@
         const updateMllmVendorUI = function() {
             const selectedVendor = mllmVendor.value;
 
-            openaiMllmConfig.classList.toggle('hidden', selectedVendor !== 'openai');
+            openaiMllmConfig.classList.toggle('hidden', selectedVendor !== 'openai' && selectedVendor !== 'xai');
             geminiConfig.classList.toggle('hidden', selectedVendor !== 'gemini');
             vertexaiConfig.classList.toggle('hidden', selectedVendor !== 'vertexai');
             customMllmConfig.classList.toggle('hidden', selectedVendor !== 'custom');
@@ -3321,6 +3380,10 @@
             } else if (selectedVendor === 'custom') {
                 if (mllmUrl) mllmUrl.placeholder = 'MLLM WebSocket URL (Required)';
                 if (mllmApiKey) mllmApiKey.placeholder = 'MLLM API Key (Required)';
+            } else if (selectedVendor === 'xai') {
+                if (mllmUrl && !mllmUrl.value.trim()) mllmUrl.value = 'wss://api.x.ai/v1/realtime';
+                if (mllmUrl) mllmUrl.placeholder = 'MLLM WebSocket URL (Required, xAI)';
+                if (mllmApiKey) mllmApiKey.placeholder = 'xAI API Key (Required)';
             } else {
                 if (mllmUrl && !mllmUrl.value.trim()) mllmUrl.value = 'wss://api.openai.com/v1/realtime';
                 if (mllmUrl) mllmUrl.placeholder = 'MLLM WebSocket URL (Required)';
@@ -3475,6 +3538,10 @@
       // At the end, always ensure agent name and channel name are editable
       document.getElementById('uniqueName').style.pointerEvents = 'auto';
       document.getElementById('agoraChannelName').style.pointerEvents = 'auto';
+
+      if (window.syncTurnDetectionUi) {
+        window.syncTurnDetectionUi();
+      }
     });
     }
 
@@ -3501,6 +3568,7 @@
           if (enableMllmCheckbox) {
             enableMllmCheckbox.checked = false;
             enableMllmCheckbox.disabled = true;
+            enableMllmCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
           }
           if (mllmSettingsBtn) {
             mllmSettingsBtn.disabled = true;
@@ -3613,7 +3681,7 @@
           return;
         }
         if (ttsVendor && ttsVendor.value === 'openai') {
-          opt.hidden = opt.value !== 'openai_tts_1';
+          opt.hidden = !opt.value.startsWith('openai_tts_');
         } else if (ttsVendor && ttsVendor.value === 'minimax') {
           opt.hidden = !opt.value.startsWith('minimax_speech_');
         } else {
@@ -3624,11 +3692,11 @@
       if (ttsVendor && ttsVendor.value === 'minimax' && ttsPreset.value && !ttsPreset.value.startsWith('minimax_speech_')) {
         ttsPreset.value = '';
       }
-      if (ttsVendor && ttsVendor.value === 'openai' && ttsPreset.value && ttsPreset.value !== 'openai_tts_1') {
+      if (ttsVendor && ttsVendor.value === 'openai' && ttsPreset.value && !ttsPreset.value.startsWith('openai_tts_')) {
         ttsPreset.value = '';
       }
       const value = ttsPreset.value;
-      const isOpenAiPreset = value === 'openai_tts_1';
+      const isOpenAiPreset = value.startsWith('openai_tts_');
       const isMiniMaxPreset = value.startsWith('minimax_speech_');
       const v = ttsVendor ? ttsVendor.value : '';
       // Hide credential fields when using Agora preset, but never un-hide them for the wrong vendor
@@ -3664,6 +3732,7 @@
     const ttsVendorSelect = document.getElementById('ttsVendor');
     if (ttsVendorSelect) ttsVendorSelect.addEventListener('change', applyAllPresetState);
     applyAllPresetState();
+    window.applyAllPresetState = applyAllPresetState;
 
     // Handle RTM enable/disable
     if (enableRtm) {
@@ -3760,25 +3829,8 @@
     
     if (turnDetectionType) {
     turnDetectionType.addEventListener('change', function() {
-      const isServerVad = this.value === 'server_vad';
-      const isSemanticVad = this.value === 'semantic_vad';
-
-      // Get the containers for MLLM-specific options
-      const mllmOptionsContainer = document.getElementById('mllmOptionsContainer');
-      const eagernessContainer = document.getElementById('eagernessContainer');
-
-      // Show/hide MLLM-specific options based on turn detection type
-      if (isServerVad || isSemanticVad) {
-        mllmOptionsContainer.classList.remove('hidden');
-      } else {
-        mllmOptionsContainer.classList.add('hidden');
-      }
-
-      // Eagerness is only available for semantic_vad
-      if (isSemanticVad) {
-        eagernessContainer.classList.remove('hidden');
-      } else {
-        eagernessContainer.classList.add('hidden');
+      if (window.applyMllmTurnDetectionUiLayout) {
+        window.applyMllmTurnDetectionUiLayout();
       }
     });
     }
@@ -3820,8 +3872,8 @@
         this.checked = true; // Prevent unchecking if it's the last selected option
       }
 
-      // Show modal when audio is checked
-      if (this.checked) {
+      // Show modal when audio is checked (skip on saved-settings restore)
+      if (this.checked && !window.__formSettingRestoreSync) {
           const audioConfigModal = document.getElementById('audioConfigModal');
           if (audioConfigModal) {
             audioConfigModal.classList.remove('hidden');
@@ -4210,7 +4262,8 @@
           exp.llm.auto_merge = document.getElementById('expLlmAutoMerge').value === 'true';
         }
         if (document.getElementById('expSetLlmGreetingInterruptable').checked) {
-          exp.llm.greeting_interruptable = document.getElementById('expLlmGreetingInterruptable').value === 'true';
+          exp.llm.greeting_configs = exp.llm.greeting_configs || {};
+          exp.llm.greeting_configs.interruptable = document.getElementById('expLlmGreetingInterruptable').value === 'true';
         }
       }
       // Turn Detector
@@ -4747,20 +4800,148 @@
       });
     }
 
+    window.openMllmDrawerToTurnDetection = function() {
+      openDrawer('mllmDrawer');
+      requestAnimationFrame(function() {
+        const el = document.getElementById('mllmTurnDetectionSlot') || document.getElementById('turnDetectionDeprecatedSection');
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    };
+
+    window.applyMllmTurnDetectionUiLayout = function() {
+      const section = document.getElementById('turnDetectionDeprecatedSection');
+      const mllmSlot = document.getElementById('mllmTurnDetectionSlot');
+      const typeEl = document.getElementById('turnDetectionType');
+      const type = typeEl ? typeEl.value : 'agora_vad';
+      const inMllm = !!(mllmSlot && section && mllmSlot.contains(section));
+
+      const interruptWrap = document.getElementById('turnDetectionInterruptUiWrap');
+      const mllmOpts = document.getElementById('mllmOptionsContainer');
+      const agoraIntr = document.getElementById('turnAgoraInterruptDurationRow');
+      const vadShared = document.getElementById('turnDetectionVadSharedParamsWrap');
+      const idleRow = document.getElementById('turnServerVadIdleRow');
+      const eager = document.getElementById('eagernessContainer');
+
+      if (inMllm) {
+        if (interruptWrap) interruptWrap.classList.add('hidden');
+        if (mllmOpts) mllmOpts.classList.add('hidden');
+        if (type === 'agora_vad') {
+          if (agoraIntr) agoraIntr.classList.remove('hidden');
+          if (vadShared) vadShared.classList.remove('hidden');
+          if (idleRow) idleRow.classList.add('hidden');
+          if (eager) eager.classList.add('hidden');
+        } else if (type === 'server_vad') {
+          if (agoraIntr) agoraIntr.classList.add('hidden');
+          if (vadShared) vadShared.classList.remove('hidden');
+          if (idleRow) idleRow.classList.remove('hidden');
+          if (eager) eager.classList.add('hidden');
+        } else {
+          if (agoraIntr) agoraIntr.classList.add('hidden');
+          if (vadShared) vadShared.classList.add('hidden');
+          if (idleRow) idleRow.classList.add('hidden');
+          if (eager) eager.classList.remove('hidden');
+        }
+      } else {
+        if (interruptWrap) interruptWrap.classList.remove('hidden');
+        if (type === 'semantic_vad') {
+          if (mllmOpts) mllmOpts.classList.remove('hidden');
+          if (eager) eager.classList.remove('hidden');
+        } else if (type === 'server_vad') {
+          if (mllmOpts) mllmOpts.classList.remove('hidden');
+          if (eager) eager.classList.add('hidden');
+        } else {
+          if (mllmOpts) mllmOpts.classList.add('hidden');
+          if (eager) eager.classList.add('hidden');
+        }
+        if (agoraIntr) agoraIntr.classList.remove('hidden');
+        if (vadShared) vadShared.classList.remove('hidden');
+        if (idleRow) idleRow.classList.add('hidden');
+      }
+    };
+
+    window.syncTurnDetectionUi = function() {
+      const enableMllm = document.getElementById('enableMllm') && document.getElementById('enableMllm').checked;
+      const section = document.getElementById('turnDetectionDeprecatedSection');
+      const advSlot = document.getElementById('advTurnDetectionSlot');
+      const mllmSlot = document.getElementById('mllmTurnDetectionSlot');
+      const notice = document.getElementById('advTurnDetectionMllmNotice');
+      const v24 = document.getElementById('turnDetectionV24Section');
+      const v24cb = document.getElementById('turnDetectionV24Enabled');
+      const mllmHint = document.getElementById('mllmBtnTurnHint');
+      const advHint = document.getElementById('advBtnTurnHint');
+      const sub = document.getElementById('turnDetectionBtnSubtitle');
+
+      if (enableMllm) {
+        if (section && mllmSlot && section.parentElement !== mllmSlot) {
+          mllmSlot.appendChild(section);
+        }
+        if (v24) v24.classList.add('hidden');
+        if (v24cb) {
+          v24cb.checked = false;
+          v24cb.disabled = true;
+        }
+        if (notice) notice.classList.remove('hidden');
+        if (mllmHint) mllmHint.classList.remove('hidden');
+        if (advHint) {
+          advHint.textContent = 'Realtime turn detection → MLLM Config drawer';
+          advHint.classList.remove('text-gray-400');
+          advHint.classList.add('text-emerald-400/90');
+        }
+        if (sub) sub.textContent = 'Realtime → mllm.turn_detection';
+        if (section) section.classList.remove('hidden');
+      } else {
+        if (section && advSlot && section.parentElement !== advSlot) {
+          advSlot.appendChild(section);
+        }
+        if (v24cb) v24cb.disabled = false;
+        if (notice) notice.classList.add('hidden');
+        if (mllmHint) mllmHint.classList.add('hidden');
+        if (advHint) {
+          advHint.textContent = 'Pipeline turn detection when MLLM is off';
+          advHint.classList.add('text-gray-400');
+          advHint.classList.remove('text-emerald-400/90');
+        }
+        if (sub) sub.textContent = 'Pipeline (legacy shape)';
+      }
+
+      const deprecatedFeatures = document.getElementById('deprecatedFeatures');
+      const useDeprecated = deprecatedFeatures && deprecatedFeatures.checked;
+      const inMllm = mllmSlot && section && mllmSlot.contains(section);
+      if (section) {
+        if (inMllm) {
+          section.classList.remove('hidden');
+        } else {
+          section.classList.toggle('hidden', !useDeprecated);
+        }
+      }
+      if (v24 && !enableMllm) {
+        v24.classList.toggle('hidden', useDeprecated);
+      }
+      if (window.applyMllmTurnDetectionUiLayout) {
+        window.applyMllmTurnDetectionUiLayout();
+      }
+    };
+
     // Deprecated Features: toggle deprecated vs v2.4 Turn Detection sections and AIVAD row
     const deprecatedFeatures = document.getElementById('deprecatedFeatures');
-    const turnDetectionDeprecatedSection = document.getElementById('turnDetectionDeprecatedSection');
-    const turnDetectionV24Section = document.getElementById('turnDetectionV24Section');
     const aivadDeprecatedRow = document.getElementById('aivadDeprecatedRow');
     function updateDeprecatedVisibility() {
+      window.syncTurnDetectionUi();
       const useDeprecated = deprecatedFeatures && deprecatedFeatures.checked;
-      if (turnDetectionDeprecatedSection) turnDetectionDeprecatedSection.classList.toggle('hidden', !useDeprecated);
-      if (turnDetectionV24Section) turnDetectionV24Section.classList.toggle('hidden', useDeprecated);
       if (aivadDeprecatedRow) aivadDeprecatedRow.classList.toggle('hidden', !useDeprecated);
     }
     if (deprecatedFeatures) {
       deprecatedFeatures.addEventListener('change', updateDeprecatedVisibility);
       updateDeprecatedVisibility();
+    }
+
+    const advOpenMllmTurnDetectionBtn = document.getElementById('advOpenMllmTurnDetectionBtn');
+    if (advOpenMllmTurnDetectionBtn) {
+      advOpenMllmTurnDetectionBtn.addEventListener('click', function() {
+        window.openMllmDrawerToTurnDetection();
+      });
     }
 
     // Turn Detection v2.4 toggle and SoS/EoS mode visibility
@@ -4778,6 +4959,7 @@
     const turnV24EndOfSpeechMode = document.getElementById('turnV24EndOfSpeechMode');
     const turnV24EoSVadBlock = document.getElementById('turnV24EoSVadBlock');
     const turnV24EoSemanticBlock = document.getElementById('turnV24EoSemanticBlock');
+    const turnV24SpeechThresholdBlock = document.getElementById('turnV24SpeechThresholdBlock');
     function updateTurnV24SubVisibility() {
       const sosMode = turnV24StartOfSpeechMode ? turnV24StartOfSpeechMode.value : 'vad';
       if (turnV24SoSVadBlock) turnV24SoSVadBlock.classList.toggle('hidden', sosMode !== 'vad');
@@ -4786,10 +4968,173 @@
       const eosMode = turnV24EndOfSpeechMode ? turnV24EndOfSpeechMode.value : 'vad';
       if (turnV24EoSVadBlock) turnV24EoSVadBlock.classList.toggle('hidden', eosMode !== 'vad');
       if (turnV24EoSemanticBlock) turnV24EoSemanticBlock.classList.toggle('hidden', eosMode !== 'semantic');
+      const usesVad = sosMode === 'vad' || eosMode === 'vad';
+      if (turnV24SpeechThresholdBlock) turnV24SpeechThresholdBlock.classList.toggle('hidden', !usesVad);
+      if (typeof window.updateManualTurnControlVisibility === 'function') {
+        window.updateManualTurnControlVisibility();
+      }
     }
-    if (turnV24StartOfSpeechMode) turnV24StartOfSpeechMode.addEventListener('change', updateTurnV24SubVisibility);
-    if (turnV24EndOfSpeechMode) turnV24EndOfSpeechMode.addEventListener('change', updateTurnV24SubVisibility);
     updateTurnV24SubVisibility();
+    window.updateTurnV24SubVisibility = updateTurnV24SubVisibility;
+
+    const manualTurnControlPanel = document.getElementById('manualTurnControlPanel');
+    const manualTurnHint = document.getElementById('manualTurnHint');
+    const manualTurnSosBtn = document.getElementById('manualTurnSosBtn');
+    const manualTurnEosBtn = document.getElementById('manualTurnEosBtn');
+    const manualTurnSosTooltip = document.getElementById('manualTurnSosTooltip');
+    const manualTurnEosTooltip = document.getElementById('manualTurnEosTooltip');
+    const manualTurnStatus = document.getElementById('manualTurnStatus');
+    const turnDetectionV24Enabled = document.getElementById('turnDetectionV24Enabled');
+
+    const getManualTurnContext = () => {
+      const deprecatedFeaturesEl = document.getElementById('deprecatedFeatures');
+      const enableRtmEl = document.getElementById('enableRtm');
+      const dataChannelEl = document.getElementById('dataChannel');
+      return {
+        deprecated: !!(deprecatedFeaturesEl && deprecatedFeaturesEl.checked),
+        turnV24On: !!(turnDetectionV24Enabled && turnDetectionV24Enabled.checked),
+        sosManual: !!(turnV24StartOfSpeechMode && turnV24StartOfSpeechMode.value === 'manual'),
+        eosManual: !!(turnV24EndOfSpeechMode && turnV24EndOfSpeechMode.value === 'manual'),
+        rtmOn: !!(enableRtmEl && enableRtmEl.checked),
+        rtmChannel: !!(dataChannelEl && dataChannelEl.value === 'rtm'),
+      };
+    };
+
+    const getManualButtonDisabledReason = (action) => {
+      const ctx = getManualTurnContext();
+      if (ctx.deprecated) {
+        return 'Turn off Deprecated Features in Agent Settings to use Turn Detection v2.4.';
+      }
+      if (!ctx.turnV24On) {
+        return 'Enable Turn Detection in Agent Settings → Advanced → Turn Detection (v2.4).';
+      }
+      if (action === 'sos' && !ctx.sosManual) {
+        return 'Set Start of Speech (SoS) mode to Manual in Turn Detection settings.';
+      }
+      if (action === 'eos' && !ctx.eosManual) {
+        return 'Set End of Speech (EoS) mode to Manual in Turn Detection settings.';
+      }
+      if (!ctx.rtmOn || !ctx.rtmChannel) {
+        return 'Enable RTM and set Data Channel to rtm in Parameters (required for manual turn control).';
+      }
+      return null;
+    };
+
+    const ensureManualTurnPrerequisites = () => {
+      const sosManual = turnV24StartOfSpeechMode && turnV24StartOfSpeechMode.value === 'manual';
+      const eosManual = turnV24EndOfSpeechMode && turnV24EndOfSpeechMode.value === 'manual';
+      if (!sosManual && !eosManual) return;
+
+      if (turnDetectionV24Enabled && !turnDetectionV24Enabled.checked) {
+        turnDetectionV24Enabled.checked = true;
+      }
+      const turnDetectionV24Config = document.getElementById('turnDetectionV24Config');
+      if (turnDetectionV24Config) turnDetectionV24Config.classList.remove('hidden');
+
+      const enableRtmEl = document.getElementById('enableRtm');
+      if (enableRtmEl && !enableRtmEl.checked) {
+        enableRtmEl.checked = true;
+        enableRtmEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      const dataChannelEl = document.getElementById('dataChannel');
+      if (dataChannelEl && dataChannelEl.value !== 'rtm') {
+        dataChannelEl.value = 'rtm';
+        dataChannelEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      const parametersEnabledEl = document.getElementById('parametersEnabled');
+      if (parametersEnabledEl && !parametersEnabledEl.checked) {
+        parametersEnabledEl.checked = true;
+        const parametersConfig = document.getElementById('parametersConfig');
+        if (parametersConfig) parametersConfig.classList.remove('hidden');
+      }
+    };
+
+    const onManualTurnModeChanged = () => {
+      ensureManualTurnPrerequisites();
+      updateTurnV24SubVisibility();
+    };
+
+    if (turnV24StartOfSpeechMode) turnV24StartOfSpeechMode.addEventListener('change', onManualTurnModeChanged);
+    if (turnV24EndOfSpeechMode) turnV24EndOfSpeechMode.addEventListener('change', onManualTurnModeChanged);
+
+    const setManualTurnButtonState = (btn, tooltipEl, action) => {
+      const reason = getManualButtonDisabledReason(action);
+      const enabled = !reason;
+      if (btn) btn.disabled = !enabled;
+      if (tooltipEl) {
+        tooltipEl.textContent = reason || (
+          action === 'sos'
+            ? 'Send user.manual_sos over RTM when you begin speaking.'
+            : 'Send user.manual_eos over RTM when you finish speaking.'
+        );
+      }
+    };
+
+    const updateManualTurnButtonStates = () => {
+      const ctx = getManualTurnContext();
+      setManualTurnButtonState(manualTurnSosBtn, manualTurnSosTooltip, 'sos');
+      setManualTurnButtonState(manualTurnEosBtn, manualTurnEosTooltip, 'eos');
+      if (manualTurnHint) {
+        if (ctx.sosManual && ctx.eosManual) {
+          manualTurnHint.textContent = 'Both SoS and EoS are manual — press Start when you begin speaking, End when you finish.';
+        } else if (ctx.sosManual) {
+          manualTurnHint.textContent = 'Only SoS is manual — use Start when you begin speaking. End of speech is detected automatically.';
+        } else if (ctx.eosManual) {
+          manualTurnHint.textContent = 'Only EoS is manual — start of speech is detected automatically. Use End when you finish speaking.';
+        } else {
+          manualTurnHint.textContent = 'Configure manual SoS and/or EoS in Agent Settings → Advanced → Turn Detection (v2.4). Hover disabled buttons for setup steps.';
+        }
+      }
+    };
+
+    window.updateManualTurnControlVisibility = () => {
+      updateManualTurnButtonStates();
+    };
+
+    const setManualTurnStatus = (message, isError = false) => {
+      if (!manualTurnStatus) return;
+      manualTurnStatus.textContent = message;
+      manualTurnStatus.classList.remove('hidden');
+      manualTurnStatus.classList.toggle('text-red-300', isError);
+      manualTurnStatus.classList.toggle('text-gray-300', !isError);
+    };
+
+    const sendManualTurnRequest = async (action) => {
+      const disabledReason = getManualButtonDisabledReason(action);
+      if (disabledReason) {
+        setManualTurnStatus(disabledReason, true);
+        return;
+      }
+      if (!window.subtitleManager) {
+        setManualTurnStatus('Subtitle manager is not available.', true);
+        return;
+      }
+      try {
+        const result = action === 'sos'
+          ? await window.subtitleManager.sendManualSos()
+          : await window.subtitleManager.sendManualEos();
+        setManualTurnStatus(`${action.toUpperCase()} sent (${result.requestId})`);
+      } catch (error) {
+        setManualTurnStatus(error.message || `Failed to send manual ${action.toUpperCase()}`, true);
+      }
+    };
+
+    if (manualTurnSosBtn) {
+      manualTurnSosBtn.addEventListener('click', () => sendManualTurnRequest('sos'));
+    }
+    if (manualTurnEosBtn) {
+      manualTurnEosBtn.addEventListener('click', () => sendManualTurnRequest('eos'));
+    }
+    if (turnDetectionV24Enabled) {
+      turnDetectionV24Enabled.addEventListener('change', window.updateManualTurnControlVisibility);
+    }
+    ['enableRtm', 'dataChannel', 'deprecatedFeatures'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', window.updateManualTurnControlVisibility);
+    });
+    window.updateManualTurnControlVisibility();
 
     // Parameters toggle
     const parametersBtn = document.getElementById('parametersBtn');
@@ -4799,6 +5144,10 @@
         if (config) config.classList.toggle('hidden');
       });
     }
+
+    if (window.FormSettingsPersistence && typeof window.FormSettingsPersistence.syncDependentUI === 'function') {
+      window.FormSettingsPersistence.syncDependentUI();
+    }
   });
   </script>
 
@@ -4807,13 +5156,13 @@
   <script src="src/js/AccessToken2.js"></script>
   <script src="src/js/RtcTokenBuilder2.js"></script>
   <script src="src/js/RtmTokenBuilder2.js"></script>
-  <script src="src/js/utils.js?v=1.2"></script>
+  <script src="src/js/utils.js?v=1.3"></script>
   <script src="src/js/api.js?v=1.3"></script>
   <script src="src/js/audio.js?v=1.2"></script>
   <script src="src/js/camera-preview.js?v=1.0"></script>
-  <script src="src/js/conversational-ai-api.js?v=1.2"></script>
-  <script src="src/js/subtitles.js?v=1.3"></script>
-  <script src="src/js/ui.js?v=1.4"></script>
+  <script src="src/js/conversational-ai-api.js?v=1.3"></script>
+  <script src="src/js/subtitles.js?v=1.5"></script>
+  <script src="src/js/ui.js?v=1.5"></script>
   <script src="src/js/asr.js?v=1.0"></script>
 
   <!-- Subtitle Overlay -->
@@ -5142,13 +5491,13 @@
               <input type="checkbox" id="enableMllm" class="mr-2 h-4 w-4 text-blue-600 bg-gray-600 border-gray-500 rounded">
               MLLM Config
             </span>
-            <span class="text-sm">Multimodal Large Language Model</span>
+            <span class="text-sm text-right leading-tight">Multimodal LLM<br><span id="mllmBtnTurnHint" class="text-emerald-400/90 hidden text-xs font-normal">Turn detection is in this drawer</span></span>
           </button>
 
           <!-- Advanced Config -->
           <button id="advConfigBtn" class="modern-btn modern-btn-secondary flex items-center justify-between w-full">
             <span>Advanced Config</span>
-            <span class="text-sm">Advanced Features, Turn Detection & Parameters</span>
+            <span class="text-sm text-right leading-tight">Features &amp; parameters<br><span id="advBtnTurnHint" class="text-xs font-normal text-gray-400">Pipeline turn detection when MLLM is off</span></span>
           </button>
         </div>
 
@@ -5166,12 +5515,12 @@
                 <option value="ares">ARES (Default)</option>
                 <option value="microsoft">Microsoft</option>
                 <option value="deepgram">Deepgram</option>
-                <option value="openai">OpenAI (Beta)</option>
+                <option value="openai">OpenAI</option>
                 <option value="speechmatics">Speechmatics</option>
-                <option value="assemblyai">AssemblyAI (Beta)</option>
-                <option value="amazon">Amazon Transcribe (Beta)</option>
-                <option value="google">Google (Beta)</option>
-                <option value="sarvam">Sarvam (Beta)</option>
+                <option value="assemblyai">AssemblyAI</option>
+                <option value="amazon">Amazon Transcribe</option>
+                <option value="google">Google</option>
+                <option value="sarvam">Sarvam</option>
                 <option value="custom">Custom</option>
               </select>
               <div class="tooltip">Select the Automatic Speech Recognition (ASR) vendor to use for speech recognition.</div>
@@ -5190,7 +5539,7 @@
                 <option value="deepgram_nova_2">deepgram_nova_2</option>
                 <option value="deepgram_nova_3">deepgram_nova_3</option>
               </select>
-              <div class="tooltip">ConvoAI 2.5 ASR presets. When selected, Deepgram endpoint/key/model fields are disabled and managed by Agora.</div>
+              <div class="tooltip">ConvoAI v2.9 managed mode for Deepgram ASR. Sets credential_mode: managed; Agora supplies credentials.</div>
             </div>
           </div>
 
@@ -5293,7 +5642,7 @@
           
           <!-- OpenAI ASR Configuration -->
           <div id="openaiAsrConfig" class="hidden mt-4">
-            <h4 class="text-sm font-semibold mb-2">OpenAI ASR Settings (Beta)</h4>
+            <h4 class="text-sm font-semibold mb-2">OpenAI ASR Settings</h4>
             <div class="modern-input grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="has-tooltip relative">
                 <input
@@ -5329,7 +5678,7 @@
           
           <!-- AssemblyAI ASR Configuration -->
           <div id="assemblyaiAsrConfig" class="hidden mt-4">
-            <h4 class="text-sm font-semibold mb-2">AssemblyAI ASR Settings (Beta)</h4>
+            <h4 class="text-sm font-semibold mb-2">AssemblyAI ASR Settings</h4>
             <div class="modern-input grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="has-tooltip relative">
                 <input
@@ -5351,7 +5700,7 @@
           
           <!-- Amazon Transcribe ASR Configuration -->
           <div id="amazonAsrConfig" class="hidden mt-4">
-            <h4 class="text-sm font-semibold mb-2">Amazon Transcribe ASR Settings (Beta)</h4>
+            <h4 class="text-sm font-semibold mb-2">Amazon Transcribe ASR Settings</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="has-tooltip relative">
                 <input
@@ -5414,7 +5763,7 @@
           
           <!-- Google ASR Configuration -->
           <div id="googleAsrConfig" class="hidden mt-4">
-            <h4 class="text-sm font-semibold mb-2">Google ASR Settings (Beta)</h4>
+            <h4 class="text-sm font-semibold mb-2">Google ASR Settings</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="has-tooltip relative">
                 <input
@@ -5577,7 +5926,7 @@
             <option value="openai_gpt_5_nano">openai_gpt_5_nano</option>
             <option value="openai_gpt_5_mini">openai_gpt_5_mini</option>
           </select>
-          <div class="tooltip">ConvoAI 2.5 LLM presets. URL/API key/model are managed by Agora; prompts and other LLM settings remain editable.</div>
+          <div class="tooltip">ConvoAI v2.9 managed mode for OpenAI LLM. Sets credential_mode: managed; prompts and other LLM settings remain editable.</div>
         </div>
         <div class="has-tooltip relative">
           <input
@@ -5618,6 +5967,13 @@
             <option value="single_first">single_first</option>
           </select>
           <div class="tooltip">Determines when the agent sends greeting messages to users joining the channel. single_every: Broadcasts a greeting every time a user joins the channel. single_first: Broadcasts a greeting only once to the first user who joins the channel.</div>
+        </div>
+        <div class="has-tooltip relative">
+          <select id="llmGreetingInterruptable">
+            <option value="true" selected>true — user can interrupt greeting</option>
+            <option value="false">false — greeting not interruptable</option>
+          </select>
+          <div class="tooltip">properties.llm.greeting_configs.interruptable. Controls whether user speech can interrupt greeting playback.</div>
         </div>
         <div class="has-tooltip relative">
           <input
@@ -5760,8 +6116,9 @@ The user speaks to you directly — treat each input as part of a live, spoken d
             <option value="minimax_speech_2_6_turbo">minimax_speech_2_6_turbo</option>
             <option value="minimax_speech_2_8_turbo">minimax_speech_2_8_turbo</option>
             <option value="openai_tts_1">openai_tts_1</option>
+            <option value="openai_tts_1_hd">openai_tts_1_hd</option>
           </select>
-          <div class="tooltip">ConvoAI 2.5 TTS presets. Vendor credentials/model are managed by Agora; non-provider-specific voice settings stay available.</div>
+          <div class="tooltip">ConvoAI v2.9 managed mode for OpenAI/MiniMax TTS. Sets credential_mode: managed; voice settings remain editable.</div>
         </div>
         <div class="has-tooltip relative">
           <select
@@ -5770,18 +6127,21 @@ The user speaks to you directly — treat each input as part of a live, spoken d
             <option value="microsoft">Microsoft Azure</option>
             <option value="elevenlabs">ElevenLabs</option>
             <option value="minimax">MiniMax</option>
-            <option value="deepgram">Deepgram (Beta)</option>
-            <option value="murf">Murf (Beta)</option>
-            <option value="cartesia">Cartesia (Beta)</option>
-            <option value="openai">OpenAI (Beta)</option>
-            <option value="humeai">Hume AI (Beta)</option>
-            <option value="rime">Rime (Beta)</option>
-            <option value="fishaudio">Fish Audio (Beta)</option>
-            <option value="google">Google (Beta)</option>
-            <option value="amazon">Amazon Polly (Beta)</option>
-            <option value="sarvam">Sarvam (Beta)</option>
+            <option value="deepgram">Deepgram</option>
+            <option value="murf">Murf</option>
+            <option value="cartesia">Cartesia</option>
+            <option value="openai">OpenAI</option>
+            <option value="humeai">Hume AI</option>
+            <option value="rime">Rime</option>
+            <option value="fishaudio">Fish Audio</option>
+            <option value="google">Google</option>
+            <option value="amazon">Amazon Polly</option>
+            <option value="sarvam">Sarvam</option>
+            <option value="gradium">Gradium</option>
+            <option value="mistral">Mistral</option>
+            <option value="generic_http">Generic HTTP (OpenAI protocol)</option>
           </select>
-          <div class="tooltip">Select the Text-to-Speech vendor to use for voice output.</div>
+          <div class="tooltip">Select the Text-to-Speech vendor to use for voice output. Generic HTTP connects a custom OpenAI-protocol TTS endpoint (ConvoAI v2.10).</div>
         </div>
 
         <!-- Microsoft TTS Settings -->
@@ -6279,15 +6639,22 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           />
           <div class="tooltip">The TTS model to use.</div>
         </div>
-        <div id="minimaxVoiceIdBlock" class="has-tooltip relative hidden">
+        <div id="minimaxVoiceBlock" class="has-tooltip relative hidden">
+          <select
+            id="minimaxVoiceSelect"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+          ></select>
+          <div class="tooltip">Common MiniMax voices grouped by language. For the full system voice catalog, see the <a href="https://platform.minimax.io/docs/faq/system-voice-id" target="_blank" rel="noopener noreferrer">MiniMax system voice ID list</a>. Choose “Other (custom voice ID)” for voices not listed here.</div>
+        </div>
+        <div id="minimaxVoiceCustomBlock" class="has-tooltip relative hidden">
           <input
             id="minimaxVoiceId"
             name="ttsVoiceId"
             autocomplete="on"
             class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
-            placeholder="Voice ID (e.g., English_captivating_female1)"
+            placeholder="Custom MiniMax voice ID"
           />
-          <div class="tooltip">The voice style identifier to use.</div>
+          <div class="tooltip">Enter any MiniMax <code class="text-xs">voice_setting.voice_id</code> from the <a href="https://platform.minimax.io/docs/faq/system-voice-id" target="_blank" rel="noopener noreferrer">official system voice ID list</a> (French, German, Cantonese, Arabic, and others).</div>
         </div>
         <div id="minimaxSampleRateBlock" class="has-tooltip relative hidden">
           <input
@@ -6697,6 +7064,165 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           <div class="tooltip">Audio sample rate in Hz. Use 24000 for LiveAvatar compatibility.</div>
         </div>
 
+        <!-- Gradium TTS Settings (v2.10) -->
+        <div id="gradiumTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="gradiumTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Gradium API Key (Required)"
+          />
+          <div class="tooltip">API key for Gradium TTS.</div>
+        </div>
+        <div id="gradiumUrlBlock" class="has-tooltip relative hidden">
+          <input
+            id="gradiumUrl"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="WebSocket URL"
+            value="wss://api.gradium.ai/api/speech/tts"
+          />
+          <div class="tooltip">Gradium WebSocket TTS endpoint.</div>
+        </div>
+        <div id="gradiumModelNameBlock" class="has-tooltip relative hidden">
+          <input
+            id="gradiumModelName"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Model name"
+            value="default"
+          />
+          <div class="tooltip">Gradium TTS model name (e.g. default).</div>
+        </div>
+        <div id="gradiumVoiceIdBlock" class="has-tooltip relative hidden">
+          <input
+            id="gradiumVoiceId"
+            name="ttsVoiceId"
+            autocomplete="on"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice ID (Required)"
+          />
+          <div class="tooltip">Gradium voice identifier.</div>
+        </div>
+        <div id="gradiumSampleRateBlock" class="has-tooltip relative hidden">
+          <input
+            id="gradiumSampleRate"
+            type="number"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Sample Rate (Hz)"
+            value="16000"
+          />
+          <div class="tooltip">Audio sample rate in Hz (e.g. 16000).</div>
+        </div>
+
+        <!-- Mistral TTS Settings (v2.10) -->
+        <div id="mistralTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="mistralTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Mistral API Key (Required)"
+          />
+          <div class="tooltip">API key for Mistral TTS.</div>
+        </div>
+        <div id="mistralModelBlock" class="has-tooltip relative hidden">
+          <input
+            id="mistralModel"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Model"
+            value="voxtral-mini-tts-2603"
+          />
+          <div class="tooltip">Mistral TTS model (e.g. voxtral-mini-tts-2603).</div>
+        </div>
+        <div id="mistralVoiceBlock" class="has-tooltip relative hidden">
+          <input
+            id="mistralVoice"
+            name="ttsVoiceId"
+            autocomplete="on"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice (Required)"
+          />
+          <div class="tooltip">Mistral TTS voice identifier.</div>
+        </div>
+
+        <!-- Generic HTTP TTS Settings (v2.10 OpenAI protocol) -->
+        <div id="genericHttpUrlBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpUrl"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="TTS URL (Required) — e.g. https://host/v1/audio/speech"
+          />
+          <div class="tooltip">OpenAI TTS protocol endpoint. Required for generic_http. Sent as top-level tts.url.</div>
+        </div>
+        <div id="genericHttpTtsKeyBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpTtsKey"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="API Key (params.api_key — optional if headers set)"
+          />
+          <div class="tooltip">Optional API key in params. Provide this and/or Authorization in Headers. If both are set, Agora uses headers.Authorization.</div>
+        </div>
+        <div id="genericHttpHeadersBlock" class="has-tooltip relative hidden">
+          <textarea
+            id="genericHttpHeaders"
+            rows="3"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500 font-mono text-sm"
+            placeholder='Headers JSON (optional), e.g. {"Authorization":"Bearer YOUR_KEY"}'
+          ></textarea>
+          <div class="tooltip">Custom HTTP headers as a JSON object. Sent as top-level tts.headers. Provide Authorization here and/or params.api_key.</div>
+        </div>
+        <div id="genericHttpModelBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpModel"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Model (e.g. gpt-4o-mini-tts)"
+          />
+          <div class="tooltip">TTS model name passed in params.</div>
+        </div>
+        <div id="genericHttpVoiceBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpVoice"
+            name="ttsVoiceId"
+            autocomplete="on"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Voice (optional)"
+          />
+          <div class="tooltip">Voice name. Omit if your TTS service does not support multiple voices.</div>
+        </div>
+        <div id="genericHttpSpeedBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpSpeed"
+            type="number"
+            step="0.1"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Speed (optional, e.g. 1.0)"
+          />
+          <div class="tooltip">Speech rate passed in params.</div>
+        </div>
+        <div id="genericHttpSampleRateBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpSampleRate"
+            type="number"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Sample Rate (Hz, optional)"
+            value="16000"
+          />
+          <div class="tooltip">Output sample rate in Hz. Must match the audio your TTS service returns.</div>
+        </div>
+        <div id="genericHttpResponseFormatBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpResponseFormat"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Response format"
+            value="pcm"
+          />
+          <div class="tooltip">Output audio format. Currently only pcm is supported.</div>
+        </div>
+        <div id="genericHttpInstructionBlock" class="has-tooltip relative hidden">
+          <input
+            id="genericHttpInstruction"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Instruction (optional, e.g. calm)"
+          />
+          <div class="tooltip">Voice style / emotion instructions for the TTS service.</div>
+        </div>
+
         <!-- TTS Custom Parameters -->
         <div class="bg-gray-700 p-4 rounded-lg">
           <div class="flex justify-between items-center mb-3">
@@ -6752,12 +7278,14 @@ The user speaks to you directly — treat each input as part of a live, spoken d
             id="avatarVendor"
             class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
           >
-            <option value="akool">Akool (Beta)</option>
-            <option value="liveavatar">LiveAvatar by HeyGen (Beta)</option>
+            <option value="akool">Akool</option>
+            <option value="liveavatar">LiveAvatar by HeyGen</option>
+            <option value="generic">Generic</option>
+            <option value="lemonslice">LemonSlice</option>
             <option value="heygen">HeyGen (Deprecated)</option>
-            <option value="anam">Anam (Beta)</option>
+            <option value="anam">Anam</option>
           </select>
-          <div class="tooltip">Select the AI Avatar vendor. LiveAvatar uses the current HeyGen LiveAvatar API (API key and avatar ID from the LiveAvatar console); TTS must be 24 kHz—this playground forces 24 kHz for supported TTS vendors when LiveAvatar is selected. Deprecated HeyGen targets the legacy Interactive Avatar integration. Anam uses Agora’s <code>avatar_id</code> field (see the Avatar ID field tooltip).</div>
+          <div class="tooltip">Select the AI Avatar vendor. LemonSlice is a first-class option that still sends <code>vendor: generic</code> with LemonSlice defaults (ConvoAI v2.10); TTS sample rate is forced to the LemonSlice setting (default 24000). Generic is for any other custom avatar provider. LiveAvatar uses the current HeyGen LiveAvatar API; TTS must be 24 kHz when LiveAvatar is selected. Deprecated HeyGen targets the legacy Interactive Avatar integration.</div>
         </div>
         <div class="has-tooltip relative">
           <input
@@ -6837,6 +7365,149 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           </div>
         </div>
 
+        <!-- Generic avatar -->
+        <div id="genericAvatarSettings" class="hidden space-y-2">
+          <div class="has-tooltip relative">
+            <input
+              id="avatarApiBaseUrl"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="API Base URL (Required)"
+            />
+            <div class="tooltip">Base URL for your generic avatar provider.</div>
+          </div>
+        </div>
+
+        <!-- LemonSlice avatar (UI option; REST vendor remains generic) -->
+        <div id="lemonsliceAvatarSettings" class="hidden space-y-2">
+          <div class="text-xs text-gray-400 italic">
+            LemonSlice uses the <code>generic</code> avatar vendor. See
+            <a href="https://lemonslice.com/docs/agora" target="_blank" rel="noopener noreferrer" class="text-blue-400 underline">LemonSlice Agora docs</a>
+            for full parameter details. TTS sample rate should typically be 24000 (e.g. MiniMax).
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="lemonsliceApiBaseUrl"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="API Base URL"
+              value="https://lemonslice.com/api/liveai/agora"
+            />
+            <div class="tooltip">LemonSlice Agora integration base URL.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="lemonsliceVendorAvatarId"
+              class="w-full p-2 rounded bg-gray-800 text-gray-400 border border-gray-500"
+              value="lemonslice"
+              readonly
+            />
+            <div class="tooltip">Fixed <code>avatar_id</code> for LemonSlice. Always sent as <code>lemonslice</code>.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <select
+              id="lemonsliceImageSource"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            >
+              <option value="agent_id" selected>Agent ID (agent_id)</option>
+              <option value="agent_image_url">Image URL (agent_image_url)</option>
+              <option value="agent_image_base64">Image Base64 (agent_image_base64)</option>
+            </select>
+            <div class="tooltip">Provide exactly one identity: LemonSlice agent ID, public image URL, or base64 image. Agent ID also defaults agent_prompt / agent_idle_prompt from that agent.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="lemonsliceImageValue"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Agent ID, image URL, or base64 (Required)"
+            />
+            <div class="tooltip">Value for the selected identity field.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <select
+              id="lemonsliceSampleRate"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            >
+              <option value="24000" selected>24000 (recommended)</option>
+              <option value="16000">16000</option>
+              <option value="48000">48000</option>
+            </select>
+            <div class="tooltip">Forces TTS output sample rate when LemonSlice is enabled (MiniMax and several other vendors need 24000). Options kept for experimentation.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <select
+              id="lemonsliceAspectRatio"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            >
+              <option value="2x3" selected>2x3 (default)</option>
+              <option value="9x16">9x16</option>
+              <option value="1x1">1x1</option>
+            </select>
+            <div class="tooltip">Output aspect ratio for the LemonSlice avatar video.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <select
+              id="lemonsliceVideoEncoding"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            >
+              <option value="" selected>Video encoding (provider default)</option>
+              <option value="H264">H264</option>
+              <option value="VP8">VP8</option>
+              <option value="AV1">AV1</option>
+            </select>
+            <div class="tooltip">Video codec for the avatar stream. Leave empty for provider default.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <select
+              id="lemonsliceModel"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            >
+              <option value="" selected>Model (provider default / flagship)</option>
+              <option value="lite">lite</option>
+              <option value="flash">flash</option>
+              <option value="pro">pro</option>
+            </select>
+            <div class="tooltip">LemonSlice model variant. Leave empty for the normal flagship model.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="lemonsliceActivityIdleTimeout"
+              type="number"
+              min="0"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Activity idle timeout sec (default 120)"
+            />
+            <div class="tooltip">Idle timeout in seconds. LemonSlice defaults to 120. Use 0 for no idle timeout (not recommended).</div>
+          </div>
+          <div class="has-tooltip relative">
+            <input
+              id="lemonsliceResponseDoneTimeout"
+              type="number"
+              min="0"
+              step="0.1"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Response done timeout sec (optional)"
+            />
+            <div class="tooltip">Seconds to wait without new audio bytes before marking the response complete. Useful when TTS does not send an end event promptly.</div>
+          </div>
+          <div class="has-tooltip relative">
+            <textarea
+              id="lemonsliceAgentPrompt"
+              rows="2"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Agent prompt / speaking (optional, e.g. a person talking)"
+            ></textarea>
+            <div class="tooltip">High-level prompt that influences avatar movement/expression while speaking. Defaults to "a person talking" if omitted (or agent defaults when using agent_id).</div>
+          </div>
+          <div class="has-tooltip relative">
+            <textarea
+              id="lemonsliceAgentIdlePrompt"
+              rows="2"
+              class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+              placeholder="Agent idle prompt (optional, e.g. a serious person)"
+            ></textarea>
+            <div class="tooltip">High-level prompt for idle-state demeanor. Defaults to "a serious person" if omitted (or agent defaults when using agent_id).</div>
+          </div>
+        </div>
+
         <!-- LiveAvatar/HeyGen-specific settings -->
         <div id="heygenSettings" class="hidden">
           <div class="has-tooltip relative">
@@ -6873,6 +7544,23 @@ The user speaks to you directly — treat each input as part of a live, spoken d
             <div class="tooltip">Activity idle timeout in seconds for LiveAvatar/HeyGen avatar.</div>
           </div>
         </div>
+
+        <!-- Avatar Custom Parameters -->
+        <div class="bg-gray-700 p-4 rounded-lg">
+          <div class="flex justify-between items-center mb-3">
+            <div class="has-tooltip relative">
+              <h3 class="text-lg font-semibold">Avatar Custom Parameters</h3>
+              <div class="tooltip">Add custom key-value parameters for AI Avatar providers. These are merged into properties.avatar.params and let you pass vendor-supported fields that do not have dedicated UI controls.</div>
+            </div>
+            <div class="has-tooltip relative">
+              <button id="addAvatarParamBtn" class="modern-btn modern-btn-primary text-sm">
+                Add Parameter
+              </button>
+              <div class="tooltip">Add a new avatar custom parameter row.</div>
+            </div>
+          </div>
+          <div id="avatar-param-container" class="space-y-2"></div>
+        </div>
       </div>
     </div>
 
@@ -6887,11 +7575,12 @@ The user speaks to you directly — treat each input as part of a live, spoken d
             class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
           >
             <option value="openai">OpenAI Realtime API</option>
+            <option value="xai">xAI Grok</option>
             <option value="gemini">Google Gemini Live</option>
             <option value="vertexai">Google Gemini Live (Vertex AI)</option>
             <option value="custom">Custom</option>
           </select>
-          <div class="tooltip">MLLM provider. Supports OpenAI Realtime API, Google Gemini Live, Google Gemini Live (Vertex AI), and custom providers.</div>
+          <div class="tooltip">MLLM provider. Supports OpenAI Realtime, xAI Grok, Google Gemini Live, Vertex AI, and custom providers.</div>
         </div>
         <div class="has-tooltip relative">
           <input
@@ -7147,6 +7836,18 @@ The user speaks to you directly — treat each input as part of a live, spoken d
             <div class="tooltip">Optional instructions for custom MLLM providers.</div>
           </div>
         </div>
+        <div class="has-tooltip relative">
+          <input
+            id="mllmMaxHistory"
+            type="number"
+            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
+            placeholder="Max history (optional, default: 32)"
+            value="32"
+            min="1"
+          />
+          <div class="tooltip">The number of conversation history messages cached in the MLLM. Minimum value is 1.</div>
+        </div>
+        <div id="mllmTurnDetectionSlot" class="mb-4 min-h-0"></div>
         <div class="bg-gray-700 p-4 rounded-lg">
           <div class="flex justify-between items-center mb-3">
             <div class="has-tooltip relative">
@@ -7162,17 +7863,6 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           </div>
           <div id="mllm-param-container" class="space-y-2"></div>
         </div>
-        <div class="has-tooltip relative">
-          <input
-            id="mllmMaxHistory"
-            type="number"
-            class="w-full p-2 rounded bg-gray-800 text-white border border-gray-500 focus:border-blue-500"
-            placeholder="Max History (Optional, default: 32)"
-            value="32"
-            min="1"
-          />
-          <div class="tooltip">The number of conversation history messages cached in the MLLM. Minimum value is 1.</div>
-        </div>
       </div>
     </div>
 
@@ -7186,7 +7876,7 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           <label class="flex items-center has-tooltip relative cursor-pointer">
             <input type="checkbox" id="deprecatedFeatures" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
             <span>Deprecated Turn Detection Features</span>
-            <div class="tooltip">Use pre-v2.4 turn detection format. When unchecked, use v2.4 turn_detection (mode + config) and configure semantic end-of-speech under Turn Detection (v2.4).</div>
+            <div class="tooltip">Toggles the pipeline turn-detection UI shape: pre-v2.4 (legacy top-level <code>turn_detection</code>) vs v2.4 (<code>mode: default</code> + SoS/EoS). When MLLM is enabled, realtime <code>mllm.turn_detection</code> is edited in the MLLM drawer, not here.</div>
           </label>
         </div>
 
@@ -7242,25 +7932,27 @@ The user speaks to you directly — treat each input as part of a live, spoken d
           </div>
         </div>
 
-        <!-- Turn Detection (deprecated structure) -->
+        <!-- Turn Detection: lives in Advanced Config when MLLM is off; moves to MLLM drawer when MLLM is on -->
+        <div id="advTurnDetectionSlot" class="mb-4">
         <div id="turnDetectionDeprecatedSection" class="mb-4">
           <button id="turnDetectionBtn" class="flex items-center justify-between w-full p-2 bg-gray-600 rounded hover:bg-gray-500">
             <span class="flex items-center">
               <input type="checkbox" id="turnDetectionEnabled" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
               Turn Detection
             </span>
-            <span class="text-sm">Default: agora_vad (deprecated)</span>
+            <span id="turnDetectionBtnSubtitle" class="text-sm">Pipeline (legacy shape)</span>
           </button>
           <div id="turnDetectionConfig" class="hidden mt-2 space-y-2">
             <div class="has-tooltip relative">
-              <label class="text-sm">Turn Detection Type</label>
+              <label class="text-sm">Mode</label>
               <select id="turnDetectionType" class="w-full p-2 rounded bg-gray-600 turn-field">
-                <option value="agora_vad">Agora VAD</option>
-                <option value="server_vad">Server VAD (MLLM)</option>
-                <option value="semantic_vad">Semantic VAD (MLLM)</option>
+                <option value="agora_vad">agora_vad</option>
+                <option value="server_vad">server_vad</option>
+                <option value="semantic_vad">semantic_vad</option>
               </select>
-              <div class="tooltip">Turn detection mechanism. Server VAD and Semantic VAD are only available when MLLM is enabled.</div>
+              <div class="tooltip">mllm.turn_detection.mode when MLLM is on. With MLLM off and deprecated turn detection on, this maps to legacy <code>turn_detection.type</code>.</div>
             </div>
+            <div id="turnDetectionInterruptUiWrap" class="space-y-2">
             <div class="has-tooltip relative">
               <label class="text-sm">Interrupt Mode</label>
               <select id="interruptMode" class="w-full p-2 rounded bg-gray-600 turn-field">
@@ -7270,7 +7962,7 @@ The user speaks to you directly — treat each input as part of a live, spoken d
                 <option value="keywords">Keywords (Stop on keyword detection)</option>
                 <option value="adaptive">Adaptive (Dynamic threshold adjustment)</option>
               </select>
-              <div class="tooltip">Sets the agent's behavior when human voice interrupts the agent while it is interacting. Only interrupt mode is supported when MLLM is enabled. Keyword mode and AIVAD are mutually exclusive.</div>
+              <div class="tooltip">Pipeline only: maps to top-level <code>interruption</code> (v2.6). Hidden for MLLM realtime turn detection.</div>
             </div>
             <div id="interruptKeywordsBlock" class="has-tooltip relative hidden">
               <label class="text-sm">Interrupt Keywords</label>
@@ -7283,30 +7975,37 @@ The user speaks to you directly — treat each input as part of a live, spoken d
               />
               <div class="tooltip">Keywords that trigger interruption when keyword mode is enabled. Separate multiple keywords with commas. Maximum 128 keywords allowed.</div>
             </div>
+            </div>
 
-            <!-- Turn Detection Parameters -->
-            <div class="has-tooltip relative">
-              <label class="text-sm">Interrupt Duration (ms)</label>
+            <div id="turnAgoraInterruptDurationRow" class="has-tooltip relative">
+              <label class="text-sm">Interrupt duration (ms)</label>
               <input type="number" id="turnInterruptDuration" class="w-full p-2 rounded bg-gray-600 turn-field" placeholder="160" min="0">
-              <div class="tooltip">Time before interruption triggers (default: 160ms).</div>
+              <div class="tooltip">Pipeline legacy: interrupt timing. MLLM + <code>agora_vad</code>: <code>agora_vad_config.interrupt_duration_ms</code>.</div>
             </div>
+            <div id="turnDetectionVadSharedParamsWrap" class="space-y-2">
             <div class="has-tooltip relative">
-              <label class="text-sm">Prefix Padding (ms)</label>
+              <label class="text-sm">Prefix padding (ms)</label>
               <input type="number" id="turnPrefixPadding" class="w-full p-2 rounded bg-gray-600 turn-field" placeholder="800" min="0">
-              <div class="tooltip">Forward padding for speech capture (default: 800ms).</div>
+              <div class="tooltip"><code>prefix_padding_ms</code> in agora_vad_config or server_vad_config.</div>
             </div>
             <div class="has-tooltip relative">
-              <label class="text-sm">Silence Duration (ms)</label>
+              <label class="text-sm">Silence duration (ms)</label>
               <input type="number" id="turnSilenceDuration" class="w-full p-2 rounded bg-gray-600 turn-field" placeholder="640" min="0">
-              <div class="tooltip">Time before assuming speech end (default: 640ms).</div>
+              <div class="tooltip"><code>silence_duration_ms</code> in agora_vad_config or server_vad_config.</div>
             </div>
             <div class="has-tooltip relative">
               <label class="text-sm">Threshold</label>
               <input type="number" id="turnThreshold" class="w-full p-2 rounded bg-gray-600 turn-field" placeholder="0.5" min="0" max="1" step="0.1">
-              <div class="tooltip">Voice detection sensitivity (0.0-1.0, default: 0.5).</div>
+              <div class="tooltip"><code>threshold</code> in agora_vad_config or server_vad_config.</div>
+            </div>
+            </div>
+            <div id="turnServerVadIdleRow" class="has-tooltip relative hidden">
+              <label class="text-sm">Idle timeout (ms)</label>
+              <input type="number" id="turnServerVadIdleTimeoutMs" class="w-full p-2 rounded bg-gray-600 turn-field" placeholder="Optional" min="0">
+              <div class="tooltip"><code>server_vad_config.idle_timeout_ms</code> (e.g. OpenAI Realtime).</div>
             </div>
 
-            <!-- MLLM-specific options -->
+            <!-- Legacy UI: not part of mllm.turn_detection JSON -->
             <div id="mllmOptionsContainer" class="hidden">
               <div class="has-tooltip relative">
                 <label class="text-sm">Create Response</label>
@@ -7331,14 +8030,20 @@ The user speaks to you directly — treat each input as part of a live, spoken d
               <div class="has-tooltip relative">
                 <label class="text-sm">Eagerness</label>
                 <select id="turnEagerness" class="w-full p-2 rounded bg-gray-600 turn-field">
-                  <option value="low">Low</option>
                   <option value="auto">Auto</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
                   <option value="high">High</option>
                 </select>
-                <div class="tooltip">Response timing control for semantic VAD. Low: conservative, High: aggressive, Auto: balanced.</div>
+                <div class="tooltip">semantic_vad_config.eagerness: auto, low, medium, or high (OpenAI Realtime semantic VAD).</div>
               </div>
             </div>
           </div>
+        </div>
+        </div>
+        <div id="advTurnDetectionMllmNotice" class="hidden mb-4 rounded border border-emerald-700/60 bg-emerald-950/30 p-3 text-sm text-gray-200 space-y-2">
+          <p class="text-xs text-gray-300">While <strong class="text-white">MLLM</strong> is on, realtime turn detection is configured in <strong class="text-white">MLLM Config</strong> (same controls, correct <code class="text-gray-200">mllm.turn_detection</code> payload). Pipeline v2.4 turn detection is turned off so you do not mix schemas.</p>
+          <button type="button" id="advOpenMllmTurnDetectionBtn" class="text-xs px-3 py-1.5 rounded bg-emerald-800 hover:bg-emerald-700 text-white">Open MLLM settings</button>
         </div>
 
         <!-- Turn Detection v2.4 (mode + config) -->
@@ -7348,23 +8053,25 @@ The user speaks to you directly — treat each input as part of a live, spoken d
               <input type="checkbox" id="turnDetectionV24Enabled" class="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
               Turn Detection
             </span>
-            <span class="text-sm">mode + config (SoS / EoS)</span>
+            <span class="text-sm">Pipeline: SoS / EoS (v2.4)</span>
           </button>
           <div id="turnDetectionV24Config" class="hidden mt-2 space-y-2">
-            <div class="has-tooltip relative">
+            <div id="turnV24SpeechThresholdBlock" class="has-tooltip relative">
               <label class="text-sm">Speech Threshold</label>
               <input type="number" id="turnV24SpeechThreshold" class="w-full p-2 rounded bg-gray-600 turn-v24-field" placeholder="0.5" min="0" max="1" step="0.1">
-              <div class="tooltip">Voice activity detection sensitivity (config.speech_threshold).</div>
+              <div class="tooltip">VAD sensitivity (config.speech_threshold). Applies when SoS or EoS uses VAD mode — not used for manual, semantic, keywords, or disabled.</div>
             </div>
             <h4 class="text-sm font-semibold mt-2">Start of Speech (SoS)</h4>
             <div class="has-tooltip relative">
               <label class="text-sm">SoS Mode</label>
               <select id="turnV24StartOfSpeechMode" class="w-full p-2 rounded bg-gray-600 turn-v24-field">
                 <option value="vad">VAD (voice activity)</option>
+                <option value="semantic">Semantic (AIVAD)</option>
                 <option value="keywords">Keywords (Beta)</option>
+                <option value="manual">Manual (RTM SoS)</option>
                 <option value="disabled">Disabled</option>
               </select>
-              <div class="tooltip">When user begins speaking. VAD: interruption threshold/prefix. Keywords: trigger on keyword. Disabled: append or ignore.</div>
+              <div class="tooltip">When user begins speaking. Manual sends user.manual_sos over RTM (v2.9). Requires RTM + data_channel: rtm.</div>
             </div>
             <div id="turnV24SoSVadBlock" class="space-y-2">
               <div class="has-tooltip relative">
@@ -7413,9 +8120,10 @@ The user speaks to you directly — treat each input as part of a live, spoken d
               <label class="text-sm">EoS Mode</label>
               <select id="turnV24EndOfSpeechMode" class="w-full p-2 rounded bg-gray-600 turn-v24-field">
                 <option value="vad">VAD (silence duration)</option>
+                <option value="manual">Manual (RTM EoS)</option>
                 <option value="semantic">Semantic (AIVAD)</option>
               </select>
-              <div class="tooltip">When user finishes speaking. VAD: silence duration. Semantic (AIVAD): semantic understanding.</div>
+              <div class="tooltip">When user finishes speaking. Manual sends user.manual_eos over RTM (v2.9). Requires RTM + data_channel: rtm.</div>
             </div>
             <div id="turnV24EoSVadBlock" class="has-tooltip relative">
               <label class="text-sm">Silence Duration (ms)</label>
@@ -7432,6 +8140,15 @@ The user speaks to you directly — treat each input as part of a live, spoken d
                 <label class="text-sm">Max Wait (ms)</label>
                 <input type="number" id="turnV24EoSemanticMaxWaitMs" class="w-full p-2 rounded bg-gray-600 turn-v24-field" placeholder="3000" min="0">
                 <div class="tooltip">semantic_config: maximum wait time for semantic end-of-speech.</div>
+              </div>
+              <div class="has-tooltip relative">
+                <label class="text-sm">Pause state detection</label>
+                <select id="turnV24EoSemanticPauseStateEnabled" class="w-full p-2 rounded bg-gray-600 turn-v24-field">
+                  <option value="">Omit (API default: true)</option>
+                  <option value="true">true</option>
+                  <option value="false">false</option>
+                </select>
+                <div class="tooltip">semantic_config.pause_state_enabled (boolean, nullable, default true). When true, the agent infers pause intent (e.g. “hold on”, “just a moment”) and waits for more input instead of treating the utterance as complete. When false, that semantic pause detection is off. Omit the field to use the service default.</div>
               </div>
             </div>
           </div>

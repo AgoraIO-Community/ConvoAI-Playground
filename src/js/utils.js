@@ -58,6 +58,12 @@ window.Utils = class Utils {
             ttsKey = '';
         } else if (ttsVendor === "murf") {
             ttsKey = document.getElementById("murfApiKey") ? document.getElementById("murfApiKey").value.trim() : '';
+        } else if (ttsVendor === "gradium") {
+            ttsKey = document.getElementById("gradiumTtsKey") ? document.getElementById("gradiumTtsKey").value.trim() : '';
+        } else if (ttsVendor === "mistral") {
+            ttsKey = document.getElementById("mistralTtsKey") ? document.getElementById("mistralTtsKey").value.trim() : '';
+        } else if (ttsVendor === "generic_http") {
+            ttsKey = document.getElementById("genericHttpTtsKey") ? document.getElementById("genericHttpTtsKey").value.trim() : '';
         }
 
         // Get new v1.6 fields
@@ -81,6 +87,7 @@ window.Utils = class Utils {
         const turnPrefixPadding = document.getElementById("turnPrefixPadding").value || null;
         const turnSilenceDuration = document.getElementById("turnSilenceDuration").value || null;
         const turnThreshold = document.getElementById("turnThreshold").value || null;
+        const turnServerVadIdleTimeoutMs = document.getElementById("turnServerVadIdleTimeoutMs") ? document.getElementById("turnServerVadIdleTimeoutMs").value || null : null;
         const turnEagerness = document.getElementById("turnEagerness").value;
         
         // Get parameters settings
@@ -166,6 +173,42 @@ window.Utils = class Utils {
         const avatarId = document.getElementById("avatarId").value.trim();
         const avatarRtcUid = document.getElementById("avatarRtcUid").value.trim();
         const avatarRtcToken = document.getElementById("avatarRtcToken").value.trim();
+        const avatarApiBaseUrl = document.getElementById("avatarApiBaseUrl")
+            ? document.getElementById("avatarApiBaseUrl").value.trim()
+            : '';
+        const lemonsliceApiBaseUrl = document.getElementById("lemonsliceApiBaseUrl")
+            ? document.getElementById("lemonsliceApiBaseUrl").value.trim()
+            : '';
+        const lemonsliceImageSource = document.getElementById("lemonsliceImageSource")
+            ? document.getElementById("lemonsliceImageSource").value
+            : 'agent_id';
+        const lemonsliceImageValue = document.getElementById("lemonsliceImageValue")
+            ? document.getElementById("lemonsliceImageValue").value.trim()
+            : '';
+        const lemonsliceAspectRatio = document.getElementById("lemonsliceAspectRatio")
+            ? document.getElementById("lemonsliceAspectRatio").value
+            : '2x3';
+        const lemonsliceSampleRate = document.getElementById("lemonsliceSampleRate")
+            ? document.getElementById("lemonsliceSampleRate").value
+            : '24000';
+        const lemonsliceVideoEncoding = document.getElementById("lemonsliceVideoEncoding")
+            ? document.getElementById("lemonsliceVideoEncoding").value
+            : '';
+        const lemonsliceModel = document.getElementById("lemonsliceModel")
+            ? document.getElementById("lemonsliceModel").value
+            : '';
+        const lemonsliceActivityIdleTimeout = document.getElementById("lemonsliceActivityIdleTimeout")
+            ? document.getElementById("lemonsliceActivityIdleTimeout").value.trim()
+            : '';
+        const lemonsliceResponseDoneTimeout = document.getElementById("lemonsliceResponseDoneTimeout")
+            ? document.getElementById("lemonsliceResponseDoneTimeout").value.trim()
+            : '';
+        const lemonsliceAgentPrompt = document.getElementById("lemonsliceAgentPrompt")
+            ? document.getElementById("lemonsliceAgentPrompt").value.trim()
+            : '';
+        const lemonsliceAgentIdlePrompt = document.getElementById("lemonsliceAgentIdlePrompt")
+            ? document.getElementById("lemonsliceAgentIdlePrompt").value.trim()
+            : '';
         const heygenQuality = document.getElementById("heygenQuality").value;
         const heygenDisableIdleTimeout = document.getElementById("heygenDisableIdleTimeout").checked;
         const heygenActivityIdleTimeout = document.getElementById("heygenActivityIdleTimeout").value || null;
@@ -203,6 +246,9 @@ window.Utils = class Utils {
             ttsKey: ttsKey,
             gMsg: document.getElementById("gMsg").value.trim(),
             greetingMode: document.getElementById("greetingMode") ? document.getElementById("greetingMode").value : "single_every",
+            llmGreetingInterruptable: document.getElementById("llmGreetingInterruptable")
+                ? document.getElementById("llmGreetingInterruptable").value === 'true'
+                : true,
             fMsg: document.getElementById("fMsg").value.trim(),
             fillerWordsEnable: document.getElementById("fillerWordsEnable") ? document.getElementById("fillerWordsEnable").checked : false,
             fillerWords: document.getElementById("fillerWords") ? document.getElementById("fillerWords").value.trim() : '',
@@ -272,6 +318,7 @@ window.Utils = class Utils {
             turnPrefixPadding: turnPrefixPadding,
             turnSilenceDuration: turnSilenceDuration,
             turnThreshold: turnThreshold,
+            turnServerVadIdleTimeoutMs: turnServerVadIdleTimeoutMs,
             turnEagerness: turnEagerness,
             
             // v2.4 turn detection (when Deprecated Features is off)
@@ -290,6 +337,7 @@ window.Utils = class Utils {
             turnV24EoSSilenceMs: document.getElementById("turnV24EoSSilenceMs") ? document.getElementById("turnV24EoSSilenceMs").value || null : null,
             turnV24EoSemanticSilenceMs: document.getElementById("turnV24EoSemanticSilenceMs") ? document.getElementById("turnV24EoSemanticSilenceMs").value || null : null,
             turnV24EoSemanticMaxWaitMs: document.getElementById("turnV24EoSemanticMaxWaitMs") ? document.getElementById("turnV24EoSemanticMaxWaitMs").value || null : null,
+            turnV24EoSemanticPauseStateEnabled: document.getElementById("turnV24EoSemanticPauseStateEnabled") ? document.getElementById("turnV24EoSemanticPauseStateEnabled").value || null : null,
             
             // Parameters
             parametersEnabled: parametersEnabled,
@@ -320,6 +368,18 @@ window.Utils = class Utils {
             avatarId: avatarId,
             avatarRtcUid: avatarRtcUid,
             avatarRtcToken: avatarRtcToken,
+            avatarApiBaseUrl: avatarApiBaseUrl,
+            lemonsliceApiBaseUrl: lemonsliceApiBaseUrl,
+            lemonsliceImageSource: lemonsliceImageSource,
+            lemonsliceImageValue: lemonsliceImageValue,
+            lemonsliceAspectRatio: lemonsliceAspectRatio,
+            lemonsliceSampleRate: lemonsliceSampleRate,
+            lemonsliceVideoEncoding: lemonsliceVideoEncoding,
+            lemonsliceModel: lemonsliceModel,
+            lemonsliceActivityIdleTimeout: lemonsliceActivityIdleTimeout,
+            lemonsliceResponseDoneTimeout: lemonsliceResponseDoneTimeout,
+            lemonsliceAgentPrompt: lemonsliceAgentPrompt,
+            lemonsliceAgentIdlePrompt: lemonsliceAgentIdlePrompt,
             heygenQuality: heygenQuality,
             heygenDisableIdleTimeout: heygenDisableIdleTimeout,
             heygenActivityIdleTimeout: heygenActivityIdleTimeout,
@@ -348,6 +408,15 @@ window.Utils = class Utils {
         const presetHasAsr = presets.some(p => p.startsWith('deepgram_'));
         const presetHasLlm = presets.some(p => p.startsWith('openai_gpt_'));
         const presetHasTts = presets.some(p => p.startsWith('openai_tts_') || p.startsWith('minimax_speech_'));
+
+        if (this.usesManualTurnControl(data)) {
+            if (!data.enableRtm) {
+                throw new Error('Manual turn control requires RTM (enable RTM in Advanced Features)');
+            }
+            if (data.dataChannel !== 'rtm') {
+                throw new Error('Manual turn control requires parameters.data_channel to be "rtm"');
+            }
+        }
 
         // Validate MLLM configuration if enabled
         if (data.enableMllm) {
@@ -384,6 +453,9 @@ window.Utils = class Utils {
                     throw new Error('MLLM API Key is required when MLLM is enabled');
                 }
             }
+            if (data.mllmVendor === 'xai' && data.turnDetectionType === 'semantic_vad') {
+                throw new Error('xAI Grok MLLM supports agora_vad and server_vad only (not semantic_vad)');
+            }
         }
 
         // Validate AI Avatar configuration if enabled
@@ -391,11 +463,38 @@ window.Utils = class Utils {
             if (!data.avatarApiKey) {
                 throw new Error('Avatar API Key is required when AI Avatar is enabled');
             }
-            if (!data.avatarId) {
+            if (data.avatarVendor !== 'lemonslice' && !data.avatarId) {
                 throw new Error('Avatar ID is required when AI Avatar is enabled');
             }
             if (!data.avatarRtcUid) {
                 throw new Error('Avatar RTC UID is required when AI Avatar is enabled');
+            }
+            if (data.avatarVendor === 'generic') {
+                if (!data.avatarApiBaseUrl) {
+                    throw new Error('API Base URL is required when Generic avatar vendor is selected');
+                }
+                if (!data.channel) {
+                    throw new Error('Channel name is required when Generic avatar vendor is selected');
+                }
+                const creds = this.getStoredCredentials();
+                if (!creds.appId) {
+                    throw new Error('App ID is required when Generic avatar vendor is selected');
+                }
+            }
+            if (data.avatarVendor === 'lemonslice') {
+                if (!data.lemonsliceApiBaseUrl) {
+                    throw new Error('API Base URL is required when LemonSlice avatar is selected');
+                }
+                if (!data.lemonsliceImageValue) {
+                    throw new Error('LemonSlice requires an image URL, agent ID, or base64 image');
+                }
+                if (!data.channel) {
+                    throw new Error('Channel name is required when LemonSlice avatar is selected');
+                }
+                const creds = this.getStoredCredentials();
+                if (!creds.appId) {
+                    throw new Error('App ID is required when LemonSlice avatar is selected');
+                }
             }
             // Avatar RTC Token is optional - no validation needed since it's already trimmed
             
@@ -497,7 +596,7 @@ window.Utils = class Utils {
                     const minimaxTtsKey = document.getElementById('minimaxTtsKey').value.trim();
                     const minimaxGroupId = document.getElementById('minimaxGroupId').value.trim();
                     const minimaxModel = document.getElementById('minimaxModel').value.trim();
-                    const minimaxVoiceId = document.getElementById('minimaxVoiceId').value.trim();
+                    const minimaxVoiceId = this.getMinimaxVoiceId();
                     const minimaxUrl = document.getElementById('minimaxUrl').value.trim();
                     if (!minimaxTtsKey) throw new Error('MiniMax API Key is required');
                     if (!minimaxGroupId) throw new Error('MiniMax Group ID is required');
@@ -570,6 +669,43 @@ window.Utils = class Utils {
                             throw new Error('Rime sampling rate must be an integer between 4000 and 44100');
                         }
                     }
+                } else if (ttsVendor === 'gradium') {
+                    const gradiumTtsKey = document.getElementById('gradiumTtsKey') ? document.getElementById('gradiumTtsKey').value.trim() : '';
+                    const gradiumUrl = document.getElementById('gradiumUrl') ? document.getElementById('gradiumUrl').value.trim() : '';
+                    const gradiumVoiceId = document.getElementById('gradiumVoiceId') ? document.getElementById('gradiumVoiceId').value.trim() : '';
+                    if (!gradiumTtsKey) throw new Error('Gradium API Key is required');
+                    if (!gradiumUrl) throw new Error('Gradium URL is required');
+                    if (!gradiumVoiceId) throw new Error('Gradium Voice ID is required');
+                } else if (ttsVendor === 'mistral') {
+                    const mistralTtsKey = document.getElementById('mistralTtsKey') ? document.getElementById('mistralTtsKey').value.trim() : '';
+                    const mistralModel = document.getElementById('mistralModel') ? document.getElementById('mistralModel').value.trim() : '';
+                    const mistralVoice = document.getElementById('mistralVoice') ? document.getElementById('mistralVoice').value.trim() : '';
+                    if (!mistralTtsKey) throw new Error('Mistral API Key is required');
+                    if (!mistralModel) throw new Error('Mistral Model is required');
+                    if (!mistralVoice) throw new Error('Mistral Voice is required');
+                } else if (ttsVendor === 'generic_http') {
+                    const genericHttpUrl = document.getElementById('genericHttpUrl') ? document.getElementById('genericHttpUrl').value.trim() : '';
+                    const genericHttpTtsKey = document.getElementById('genericHttpTtsKey') ? document.getElementById('genericHttpTtsKey').value.trim() : '';
+                    const genericHttpHeadersRaw = document.getElementById('genericHttpHeaders') ? document.getElementById('genericHttpHeaders').value.trim() : '';
+                    if (!genericHttpUrl) {
+                        throw new Error('Generic HTTP TTS URL is required');
+                    }
+                    let hasAuthHeader = false;
+                    if (genericHttpHeadersRaw) {
+                        try {
+                            const headers = JSON.parse(genericHttpHeadersRaw);
+                            if (!headers || typeof headers !== 'object' || Array.isArray(headers)) {
+                                throw new Error('Generic HTTP TTS headers must be a JSON object');
+                            }
+                            hasAuthHeader = Boolean(headers.Authorization);
+                        } catch (e) {
+                            if (e.message && e.message.includes('Generic HTTP')) throw e;
+                            throw new Error('Generic HTTP TTS headers must be valid JSON');
+                        }
+                    }
+                    if (!genericHttpTtsKey && !hasAuthHeader) {
+                        throw new Error('Generic HTTP TTS requires params.api_key and/or headers.Authorization');
+                    }
                 }
             }
 
@@ -622,6 +758,17 @@ window.Utils = class Utils {
                 throw new Error('RTM must be enabled to use RTM data channel');
             }
         }
+    }
+
+    static getMinimaxVoiceId() {
+        const voiceSelect = document.getElementById("minimaxVoiceSelect");
+        if (!voiceSelect) {
+            return document.getElementById("minimaxVoiceId")?.value.trim() || "";
+        }
+        if (voiceSelect.value === "other") {
+            return document.getElementById("minimaxVoiceId")?.value.trim() || "";
+        }
+        return voiceSelect.value;
     }
 
     static getCustomParams() {
@@ -687,6 +834,26 @@ window.Utils = class Utils {
     static getTtsCustomParams() {
         const params = {};
         const container = document.getElementById("tts-param-container");
+        if (!container) return params;
+        const paramElements = container.children;
+
+        for (let element of paramElements) {
+            const inputs = element.querySelectorAll('input, select');
+            const key = inputs[1].value;
+            const type = inputs[0].value;
+            const value = inputs[2].value;
+
+            if (key && value) {
+                params[key] = this.parseParamValue(type, value);
+            }
+        }
+
+        return params;
+    }
+
+    static getAvatarCustomParams() {
+        const params = {};
+        const container = document.getElementById("avatar-param-container");
         if (!container) return params;
         const paramElements = container.children;
 
@@ -788,6 +955,66 @@ window.Utils = class Utils {
             .split(',')
             .map(v => v.trim())
             .filter(Boolean);
+    }
+
+    static MANAGED_ASR_MODELS = {
+        deepgram_nova_2: 'nova-2',
+        deepgram_nova_3: 'nova-3'
+    };
+
+    static MANAGED_LLM_MODELS = {
+        openai_gpt_4o_mini: 'gpt-4o-mini',
+        openai_gpt_4_1_mini: 'gpt-4.1-mini',
+        openai_gpt_5_nano: 'gpt-5-nano',
+        openai_gpt_5_mini: 'gpt-5-mini'
+    };
+
+    static MANAGED_TTS_MODELS = {
+        openai_tts_1: 'tts-1',
+        openai_tts_1_hd: 'tts-1',
+        minimax_speech_2_6_turbo: 'speech-2.6-turbo',
+        minimax_speech_2_8_turbo: 'speech-2.8-turbo'
+    };
+
+    static usesManualTurnControl(formData) {
+        if (formData.useDeprecatedFeatures || !formData.turnV24Enabled) return false;
+        const sosMode = formData.turnV24StartOfSpeechMode || 'vad';
+        const eosMode = formData.turnV24EndOfSpeechMode || 'vad';
+        return sosMode === 'manual' || eosMode === 'manual';
+    }
+
+    static applyManagedProviderBlock(block, presetKey, category) {
+        if (!block || !presetKey) return;
+        block.credential_mode = 'managed';
+        if (!block.params) block.params = {};
+
+        if (category === 'asr') {
+            block.vendor = 'deepgram';
+            const model = this.MANAGED_ASR_MODELS[presetKey];
+            if (model) block.params.model = model;
+            if (!block.params.url) block.params.url = 'wss://api.deepgram.com/v1/listen';
+            delete block.params.key;
+        } else if (category === 'llm') {
+            block.vendor = block.vendor || 'openai';
+            block.style = block.style || 'openai';
+            if (!block.url) block.url = 'https://api.openai.com/v1/chat/completions';
+            const model = this.MANAGED_LLM_MODELS[presetKey];
+            if (model) block.params.model = model;
+            delete block.api_key;
+        } else if (category === 'tts') {
+            const model = this.MANAGED_TTS_MODELS[presetKey];
+            if (presetKey.startsWith('openai_tts_')) {
+                block.vendor = 'openai';
+                if (model) block.params.model = model;
+                delete block.params.api_key;
+            } else if (presetKey.startsWith('minimax_speech_')) {
+                block.vendor = 'minimax';
+                if (model) block.params.model = model;
+                if (!block.params.url) block.params.url = 'wss://api.minimax.io/ws/v1/t2a_v2';
+                delete block.params.key;
+                delete block.params.group_id;
+            }
+        }
     }
 
     static buildAsrConfig(formData) {
@@ -992,12 +1219,23 @@ window.Utils = class Utils {
     }
 
     /**
-     * LiveAvatar (vendor liveavatar) requires TTS audio at 24 kHz per Agora docs.
+     * LiveAvatar and LemonSlice need TTS at a specific sample rate (default 24 kHz).
      * Legacy vendor "heygen" may still accept other rates on the service side.
      */
-    static enforceLiveAvatarTtsSampleRate(config, formData) {
-        if (!formData.enableAvatar || formData.avatarVendor !== 'liveavatar' || formData.enableMllm) return;
+    static enforceAvatarTtsSampleRate(config, formData) {
+        if (!formData.enableAvatar || formData.enableMllm) return;
         if (!config.properties?.tts?.params) return;
+
+        let rate = null;
+        if (formData.avatarVendor === 'liveavatar') {
+            rate = 24000;
+        } else if (formData.avatarVendor === 'lemonslice') {
+            const parsed = parseInt(formData.lemonsliceSampleRate || '24000', 10);
+            rate = Number.isFinite(parsed) ? parsed : 24000;
+        } else {
+            return;
+        }
+
         const tts = config.properties.tts;
         const p = tts.params;
         switch (tts.vendor) {
@@ -1005,22 +1243,88 @@ window.Utils = class Utils {
             case 'elevenlabs':
             case 'sarvam':
             case 'murf':
-                p.sample_rate = 24000;
+            case 'deepgram':
+            case 'gradium':
+            case 'generic_http':
+                p.sample_rate = rate;
                 break;
             case 'google':
                 if (!p.AudioConfig) p.AudioConfig = {};
-                p.AudioConfig.sample_rate_hertz = 24000;
+                p.AudioConfig.sample_rate_hertz = rate;
                 break;
             case 'minimax':
                 if (!p.audio_setting) p.audio_setting = {};
-                p.audio_setting.sample_rate = 24000;
+                p.audio_setting.sample_rate = rate;
                 break;
             case 'rime':
-                p.samplingRate = 24000;
+                p.samplingRate = rate;
                 break;
             default:
                 break;
         }
+    }
+
+    /** @deprecated Use enforceAvatarTtsSampleRate */
+    static enforceLiveAvatarTtsSampleRate(config, formData) {
+        this.enforceAvatarTtsSampleRate(config, formData);
+    }
+
+    /**
+     * MLLM turn_detection uses mode agora_vad | server_vad | semantic_vad and nested *_config objects.
+     * When MLLM is enabled, top-level turn_detection is not used; values come from the Turn Detection
+     * controls when the Turn Detection checkbox is enabled (same fields as pipeline legacy UI).
+     */
+    static buildMllmTurnDetection(formData) {
+        if (!formData.enableMllm) return null;
+        if (!formData.turnDetectionEnabled) return null;
+
+        const mode = formData.turnDetectionType;
+        if (!mode) return null;
+
+        const hasVal = (v) => v != null && v !== '';
+        const result = { mode };
+
+        if (mode === 'agora_vad') {
+            const c = {};
+            if (hasVal(formData.turnInterruptDuration)) {
+                c.interrupt_duration_ms = parseFloat(formData.turnInterruptDuration);
+            }
+            if (hasVal(formData.turnPrefixPadding)) {
+                c.prefix_padding_ms = parseInt(formData.turnPrefixPadding, 10);
+            }
+            if (hasVal(formData.turnSilenceDuration)) {
+                c.silence_duration_ms = parseInt(formData.turnSilenceDuration, 10);
+            }
+            if (hasVal(formData.turnThreshold)) {
+                c.threshold = parseFloat(formData.turnThreshold);
+            }
+            if (Object.keys(c).length > 0) {
+                result.agora_vad_config = c;
+            }
+        } else if (mode === 'server_vad') {
+            const c = {};
+            if (hasVal(formData.turnPrefixPadding)) {
+                c.prefix_padding_ms = parseInt(formData.turnPrefixPadding, 10);
+            }
+            if (hasVal(formData.turnSilenceDuration)) {
+                c.silence_duration_ms = parseInt(formData.turnSilenceDuration, 10);
+            }
+            if (hasVal(formData.turnThreshold)) {
+                c.threshold = parseFloat(formData.turnThreshold);
+            }
+            if (hasVal(formData.turnServerVadIdleTimeoutMs)) {
+                c.idle_timeout_ms = parseInt(formData.turnServerVadIdleTimeoutMs, 10);
+            }
+            if (Object.keys(c).length > 0) {
+                result.server_vad_config = c;
+            }
+        } else if (mode === 'semantic_vad') {
+            result.semantic_vad_config = {
+                eagerness: formData.turnEagerness || 'auto'
+            };
+        }
+
+        return result;
     }
 
     static buildAgentConfig(formData, customParams = {}, mllmCustomParams = {}) {
@@ -1157,27 +1461,29 @@ window.Utils = class Utils {
         let turnDetection = null;
         let interruption = null;
         if (formData.useDeprecatedFeatures && formData.turnDetectionEnabled) {
-            // Deprecated structure (pre-v2.4)
-            turnDetection = {
-                type: formData.turnDetectionType
-            };
-            
-            // Add VAD parameters if they have values
-            if (formData.turnInterruptDuration) {
-                turnDetection.interrupt_duration_ms = parseFloat(formData.turnInterruptDuration);
-            }
-            if (formData.turnPrefixPadding) {
-                turnDetection.prefix_padding_ms = parseInt(formData.turnPrefixPadding, 10);
-            }
-            if (formData.turnSilenceDuration) {
-                turnDetection.silence_duration_ms = parseInt(formData.turnSilenceDuration, 10);
-            }
-            if (formData.turnThreshold) {
-                turnDetection.threshold = parseFloat(formData.turnThreshold);
-            }
-            
-            if (formData.turnDetectionType === 'semantic_vad') {
-                turnDetection.eagerness = formData.turnEagerness;
+            // Deprecated structure (pre-v2.4). When MLLM is on, turn_detection belongs under mllm only
+            // (see buildMllmTurnDetection); do not emit legacy top-level turn_detection.
+            if (!formData.enableMllm) {
+                turnDetection = {
+                    type: formData.turnDetectionType
+                };
+
+                if (formData.turnInterruptDuration) {
+                    turnDetection.interrupt_duration_ms = parseFloat(formData.turnInterruptDuration);
+                }
+                if (formData.turnPrefixPadding) {
+                    turnDetection.prefix_padding_ms = parseInt(formData.turnPrefixPadding, 10);
+                }
+                if (formData.turnSilenceDuration) {
+                    turnDetection.silence_duration_ms = parseInt(formData.turnSilenceDuration, 10);
+                }
+                if (formData.turnThreshold) {
+                    turnDetection.threshold = parseFloat(formData.turnThreshold);
+                }
+
+                if (formData.turnDetectionType === 'semantic_vad') {
+                    turnDetection.eagerness = formData.turnEagerness;
+                }
             }
             // v2.6 interruption object replaces interrupt_mode behavior.
             if (formData.turnInterruptMode === 'keywords') {
@@ -1209,11 +1515,13 @@ window.Utils = class Utils {
         } else if (!formData.useDeprecatedFeatures && formData.turnV24Enabled) {
             // v2.4 structure: mode + config (SoS / EoS)
             const config = {};
-            if (formData.turnV24SpeechThreshold != null && formData.turnV24SpeechThreshold !== '') {
+            const sosMode = formData.turnV24StartOfSpeechMode || 'vad';
+            const eosMode = formData.turnV24EndOfSpeechMode || 'vad';
+            const usesVad = sosMode === 'vad' || eosMode === 'vad';
+            if (usesVad && formData.turnV24SpeechThreshold != null && formData.turnV24SpeechThreshold !== '') {
                 config.speech_threshold = parseFloat(formData.turnV24SpeechThreshold);
             }
-            // Start of Speech (vad_config / keywords_config / disabled_config)
-            const sosMode = formData.turnV24StartOfSpeechMode || 'vad';
+            // Start of Speech (vad_config / semantic / keywords_config / disabled_config)
             if (sosMode === 'vad') {
                 const vadConfig = {};
                 if (formData.turnV24SoSVadInterruptMs != null && formData.turnV24SoSVadInterruptMs !== '') {
@@ -1226,6 +1534,8 @@ window.Utils = class Utils {
                     vadConfig.prefix_padding_ms = parseInt(formData.turnV24SoSPrefixPaddingMs, 10);
                 }
                 config.start_of_speech = Object.keys(vadConfig).length > 0 ? { mode: 'vad', vad_config: vadConfig } : { mode: 'vad' };
+            } else if (sosMode === 'semantic') {
+                config.start_of_speech = { mode: 'semantic' };
             } else if (sosMode === 'keywords') {
                 const keywordsConfig = {};
                 if (formData.turnV24SoSKeywordsInterruptMs != null && formData.turnV24SoSKeywordsInterruptMs !== '') {
@@ -1244,23 +1554,26 @@ window.Utils = class Utils {
                     mode: 'keywords',
                     keywords: triggeredKeywords
                 };
-            } else {
+            } else if (sosMode === 'disabled') {
                 interruption = {
                     enable: false,
                     disabled_config: {
                         strategy: formData.turnV24SoSDisabledStrategy || 'append'
                     }
                 };
+            } else if (sosMode === 'manual') {
+                config.start_of_speech = { mode: 'manual' };
             }
-            if (sosMode === 'vad') {
+            if (sosMode === 'vad' || sosMode === 'semantic') {
                 interruption = {
                     enable: true,
                     mode: 'start_of_speech'
                 };
             }
             // End of Speech
-            const eosMode = formData.turnV24EndOfSpeechMode || 'vad';
-            if (eosMode === 'vad') {
+            if (eosMode === 'manual') {
+                config.end_of_speech = { mode: 'manual' };
+            } else if (eosMode === 'vad') {
                 config.end_of_speech = { mode: 'vad' };
                 if (formData.turnV24EoSSilenceMs != null && formData.turnV24EoSSilenceMs !== '') {
                     config.end_of_speech.vad_config = { silence_duration_ms: parseInt(formData.turnV24EoSSilenceMs, 10) };
@@ -1272,6 +1585,9 @@ window.Utils = class Utils {
                 }
                 if (formData.turnV24EoSemanticMaxWaitMs != null && formData.turnV24EoSemanticMaxWaitMs !== '') {
                     semanticConfig.max_wait_ms = parseInt(formData.turnV24EoSemanticMaxWaitMs, 10);
+                }
+                if (formData.turnV24EoSemanticPauseStateEnabled === 'true' || formData.turnV24EoSemanticPauseStateEnabled === 'false') {
+                    semanticConfig.pause_state_enabled = formData.turnV24EoSemanticPauseStateEnabled === 'true';
                 }
                 config.end_of_speech = Object.keys(semanticConfig).length > 0 ? { mode: 'semantic', semantic_config: semanticConfig } : { mode: 'semantic' };
             }
@@ -1386,7 +1702,6 @@ window.Utils = class Utils {
 
         const config = {
             name: formData.uniqueName,
-            ...(presets.length > 0 ? { preset: presets.join(',') } : {}),
             properties: {
                 channel: formData.channel,
                 token: formData.token,
@@ -1399,7 +1714,7 @@ window.Utils = class Utils {
                 ...(Object.keys(advancedFeatures).length > 0 ? { advanced_features: advancedFeatures } : {}),
                 ...(sal ? { sal: sal } : {}),
                 ...(formData.enableMllm ? {} : { asr: this.buildAsrConfig(formData) }), // Only include ASR if MLLM is not enabled
-                ...(turnDetection ? { turn_detection: turnDetection } : {}),
+                ...(turnDetection && !formData.enableMllm ? { turn_detection: turnDetection } : {}),
                 ...(interruption ? { interruption: interruption } : {}),
                 ...(parameters ? { parameters: parameters } : {}),
                 ...(formData.enableMllm ? {} : { // Only include LLM/TTS if MLLM is not enabled
@@ -1413,11 +1728,18 @@ window.Utils = class Utils {
                         ...(formData.llmStyle ? { style: formData.llmStyle } : {}),
                         system_messages: systemMessages,
                         greeting_message: formData.gMsg,
-                        ...(formData.greetingMode && formData.greetingMode !== "single_every" ? {
-                            greeting_configs: {
-                                mode: formData.greetingMode
+                        ...(() => {
+                            const greetingConfigs = {};
+                            if (formData.greetingMode && formData.greetingMode !== 'single_every') {
+                                greetingConfigs.mode = formData.greetingMode;
                             }
-                        } : {}),
+                            if (typeof formData.llmGreetingInterruptable === 'boolean') {
+                                greetingConfigs.interruptable = formData.llmGreetingInterruptable;
+                            }
+                            return Object.keys(greetingConfigs).length > 0
+                                ? { greeting_configs: greetingConfigs }
+                                : {};
+                        })(),
                         failure_message: formData.fMsg,
                         ...(formData.fillerWordsEnable && formData.fillerWords ? (() => {
                             const phrases = formData.fillerWords.split(',').map(s => s.trim()).filter(s => s.length > 0);
@@ -1450,6 +1772,7 @@ window.Utils = class Utils {
                 }),
                 ...(formData.enableMllm ? { // Include MLLM if enabled
                     mllm: (() => {
+                        const mllmTurnDetection = this.buildMllmTurnDetection(formData);
                         const mllmInputModalities = (formData.inputModalities || []).filter(modality => modality === 'audio' || modality === 'text');
                         const safeMllmInputModalities = mllmInputModalities.length > 0
                             ? mllmInputModalities
@@ -1460,6 +1783,7 @@ window.Utils = class Utils {
                             : ((formData.mllmVendor === 'vertexai' || formData.mllmVendor === 'gemini') ? ['audio'] : ['text', 'audio']);
                         const mllmConfig = {
                         enable: true,
+                        ...(mllmTurnDetection ? { turn_detection: mllmTurnDetection } : {}),
                         ...((formData.mllmVendor === 'vertexai' || formData.mllmVendor === 'gemini') ? {} : { url: formData.mllmUrl }),
                         ...(formData.mllmVendor === 'vertexai' ? {} : { api_key: formData.mllmApiKey }),
                         ...(formData.mllmGreetingMessage ? { greeting_message: formData.mllmGreetingMessage } : {}),
@@ -1498,6 +1822,14 @@ window.Utils = class Utils {
                                 ...(formData.customMllmInstructions ? { instructions: formData.customMllmInstructions } : {}),
                                 ...mllmCustomParams
                             }
+                        } : formData.mllmVendor === 'xai' ? {
+                            params: {
+                                voice: formData.mllmOpenaiVoice || 'eve',
+                                language: 'en',
+                                sample_rate: 24000,
+                                ...(formData.mllmOpenaiInstructions ? { instructions: formData.mllmOpenaiInstructions } : {}),
+                                ...mllmCustomParams
+                            }
                         } : {
                             params: {
                                 ...(formData.mllmOpenaiModel ? { model: formData.mllmOpenaiModel } : {}),
@@ -1525,11 +1857,6 @@ window.Utils = class Utils {
             }
         };
 
-        if (formData.enableMllm && config.properties.mllm && config.properties.turn_detection) {
-            config.properties.mllm.turn_detection = config.properties.turn_detection;
-            delete config.properties.turn_detection;
-        }
-
         if (!formData.enableMllm && config.properties.asr && Object.keys(asrCustomParams).length > 0) {
             config.properties.asr.params = {
                 ...(config.properties.asr.params || {}),
@@ -1542,7 +1869,7 @@ window.Utils = class Utils {
             if (!formData.avatarApiKey) {
                 throw new Error('Avatar API Key is required when AI Avatar is enabled');
             }
-            if (!formData.avatarId) {
+            if (formData.avatarVendor !== 'lemonslice' && !formData.avatarId) {
                 throw new Error('Avatar ID is required when AI Avatar is enabled');
             }
             if (!formData.avatarRtcUid) {
@@ -1550,25 +1877,68 @@ window.Utils = class Utils {
             }
             // Avatar RTC Token is optional - no validation needed
 
+            const credsForAvatar = this.getStoredCredentials();
+            const isLemonslice = formData.avatarVendor === 'lemonslice';
+            // LemonSlice is a first-class UI option but REST still uses vendor "generic"
+            const avatarVendorPayload = isLemonslice ? 'generic' : formData.avatarVendor;
+
+            let avatarParams;
+            if (formData.avatarVendor === 'anam') {
+                avatarParams = {
+                    agora_token: formData.avatarRtcToken || '',
+                    agora_uid: formData.avatarRtcUid,
+                    api_key: formData.avatarApiKey,
+                    avatar_id: formData.avatarId,
+                    sample_rate: parseInt(formData.anamSampleRate, 10),
+                    quality: formData.anamQuality,
+                    video_encoding: formData.anamVideoEncoding
+                };
+            } else if (formData.avatarVendor === 'generic') {
+                avatarParams = {
+                    api_key: formData.avatarApiKey,
+                    api_base_url: formData.avatarApiBaseUrl,
+                    avatar_id: formData.avatarId,
+                    agora_appid: credsForAvatar.appId,
+                    agora_channel: formData.channel,
+                    agora_uid: formData.avatarRtcUid,
+                    ...(formData.avatarRtcToken ? { agora_token: formData.avatarRtcToken } : {})
+                };
+            } else if (isLemonslice) {
+                const imageSource = formData.lemonsliceImageSource || 'agent_id';
+                avatarParams = {
+                    api_key: formData.avatarApiKey,
+                    api_base_url: formData.lemonsliceApiBaseUrl || 'https://lemonslice.com/api/liveai/agora',
+                    avatar_id: 'lemonslice',
+                    agora_appid: credsForAvatar.appId,
+                    agora_channel: formData.channel,
+                    agora_uid: formData.avatarRtcUid,
+                    ...(formData.avatarRtcToken ? { agora_token: formData.avatarRtcToken } : {}),
+                    [imageSource]: formData.lemonsliceImageValue,
+                    ...(formData.lemonsliceAspectRatio ? { aspect_ratio: formData.lemonsliceAspectRatio } : {}),
+                    ...(formData.lemonsliceVideoEncoding ? { video_encoding: formData.lemonsliceVideoEncoding } : {}),
+                    ...(formData.lemonsliceModel ? { model: formData.lemonsliceModel } : {}),
+                    ...(formData.lemonsliceActivityIdleTimeout !== '' && formData.lemonsliceActivityIdleTimeout != null
+                        ? { activity_idle_timeout: parseInt(formData.lemonsliceActivityIdleTimeout, 10) }
+                        : {}),
+                    ...(formData.lemonsliceResponseDoneTimeout !== '' && formData.lemonsliceResponseDoneTimeout != null
+                        ? { response_done_timeout: parseFloat(formData.lemonsliceResponseDoneTimeout) }
+                        : {}),
+                    ...(formData.lemonsliceAgentPrompt ? { agent_prompt: formData.lemonsliceAgentPrompt } : {}),
+                    ...(formData.lemonsliceAgentIdlePrompt ? { agent_idle_prompt: formData.lemonsliceAgentIdlePrompt } : {})
+                };
+            } else {
+                avatarParams = {
+                    api_key: formData.avatarApiKey,
+                    agora_uid: formData.avatarRtcUid,
+                    avatar_id: formData.avatarId,
+                    ...(formData.avatarRtcToken && formData.avatarRtcToken !== '' ? { agora_token: formData.avatarRtcToken } : {})
+                };
+            }
+
             config.properties.avatar = {
-                vendor: formData.avatarVendor,
+                vendor: avatarVendorPayload,
                 enable: true,
-                params: formData.avatarVendor === 'anam'
-                    ? {
-                        agora_token: formData.avatarRtcToken || '',
-                        agora_uid: formData.avatarRtcUid,
-                        api_key: formData.avatarApiKey,
-                        avatar_id: formData.avatarId,
-                        sample_rate: parseInt(formData.anamSampleRate, 10),
-                        quality: formData.anamQuality,
-                        video_encoding: formData.anamVideoEncoding
-                    }
-                    : {
-                        api_key: formData.avatarApiKey,
-                        agora_uid: formData.avatarRtcUid,
-                        avatar_id: formData.avatarId,
-                        ...(formData.avatarRtcToken && formData.avatarRtcToken !== '' ? { agora_token: formData.avatarRtcToken } : {})
-                    }
+                params: avatarParams
             };
 
             // Add LiveAvatar/HeyGen specific parameters
@@ -1578,6 +1948,14 @@ window.Utils = class Utils {
                 if (formData.heygenActivityIdleTimeout) {
                     config.properties.avatar.params.activity_idle_timeout = parseInt(formData.heygenActivityIdleTimeout, 10);
                 }
+            }
+
+            const avatarCustomParams = this.getAvatarCustomParams();
+            if (Object.keys(avatarCustomParams).length > 0) {
+                config.properties.avatar.params = {
+                    ...config.properties.avatar.params,
+                    ...avatarCustomParams
+                };
             }
         }
 
@@ -1719,7 +2097,7 @@ window.Utils = class Utils {
                         group_id: document.getElementById("minimaxGroupId").value,
                         model: document.getElementById("minimaxModel").value,
                         voice_setting: {
-                            voice_id: document.getElementById("minimaxVoiceId").value
+                            voice_id: this.getMinimaxVoiceId()
                         },
                         audio_setting: {
                             sample_rate: minimaxSampleRate
@@ -1836,6 +2214,67 @@ window.Utils = class Utils {
                         sample_rate: parseInt(document.getElementById("murfSampleRate").value || "24000", 10)
                     }
                 };
+            } else if (formData.vendor === "gradium") {
+                const gradiumParams = {
+                    api_key: document.getElementById("gradiumTtsKey").value,
+                    url: document.getElementById("gradiumUrl").value.trim(),
+                    model_name: document.getElementById("gradiumModelName").value.trim() || "default",
+                    voice_id: document.getElementById("gradiumVoiceId").value.trim()
+                };
+                if (document.getElementById("gradiumSampleRate")?.value) {
+                    gradiumParams.sample_rate = parseInt(document.getElementById("gradiumSampleRate").value, 10);
+                }
+                config.properties.tts = {
+                    vendor: "gradium",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: gradiumParams
+                };
+            } else if (formData.vendor === "mistral") {
+                config.properties.tts = {
+                    vendor: "mistral",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    params: {
+                        api_key: document.getElementById("mistralTtsKey").value,
+                        model: document.getElementById("mistralModel").value.trim(),
+                        voice: document.getElementById("mistralVoice").value.trim()
+                    }
+                };
+            } else if (formData.vendor === "generic_http") {
+                const genericHttpParams = {};
+                const genericHttpKey = document.getElementById("genericHttpTtsKey")?.value.trim();
+                if (genericHttpKey) genericHttpParams.api_key = genericHttpKey;
+                if (document.getElementById("genericHttpModel")?.value.trim()) {
+                    genericHttpParams.model = document.getElementById("genericHttpModel").value.trim();
+                }
+                if (document.getElementById("genericHttpVoice")?.value.trim()) {
+                    genericHttpParams.voice = document.getElementById("genericHttpVoice").value.trim();
+                }
+                if (document.getElementById("genericHttpSpeed")?.value) {
+                    genericHttpParams.speed = parseFloat(document.getElementById("genericHttpSpeed").value);
+                }
+                if (document.getElementById("genericHttpSampleRate")?.value) {
+                    genericHttpParams.sample_rate = parseInt(document.getElementById("genericHttpSampleRate").value, 10);
+                }
+                if (document.getElementById("genericHttpResponseFormat")?.value.trim()) {
+                    genericHttpParams.response_format = document.getElementById("genericHttpResponseFormat").value.trim();
+                }
+                if (document.getElementById("genericHttpInstruction")?.value.trim()) {
+                    genericHttpParams.instruction = document.getElementById("genericHttpInstruction").value.trim();
+                }
+
+                const genericHttpTts = {
+                    vendor: "generic_http",
+                    ...(skip_patterns ? { skip_patterns } : {}),
+                    url: document.getElementById("genericHttpUrl").value.trim(),
+                    params: genericHttpParams
+                };
+
+                const headersRaw = document.getElementById("genericHttpHeaders")?.value.trim();
+                if (headersRaw) {
+                    genericHttpTts.headers = JSON.parse(headersRaw);
+                }
+
+                config.properties.tts = genericHttpTts;
             }
 
             const ttsCustomParams = this.getTtsCustomParams();
@@ -1850,7 +2289,7 @@ window.Utils = class Utils {
                 };
             }
 
-            this.enforceLiveAvatarTtsSampleRate(config, formData);
+            this.enforceAvatarTtsSampleRate(config, formData);
         }
 
         // Add RTC encryption configuration if enabled (only if mode is selected and not empty)
@@ -1927,37 +2366,17 @@ window.Utils = class Utils {
             }
         }
 
-        // Presets are Agora-managed; keep section-level features but remove
-        // provider credential/endpoint/model fields for the preset category.
+        // v2.9 managed mode: credential_mode replaces deprecated top-level preset.
         if (!formData.enableMllm) {
-            if (presetHasLlm && config.properties.llm) {
-                config.properties.llm.vendor = 'openai';
-                delete config.properties.llm.api_key;
-                delete config.properties.llm.url;
-                if (config.properties.llm.params) {
-                    delete config.properties.llm.params.model;
-                }
+            if (presetHasAsr && formData.asrPreset && config.properties.asr) {
+                this.applyManagedProviderBlock(config.properties.asr, formData.asrPreset, 'asr');
             }
-            if (presetHasTts && config.properties.tts) {
-                const ttsPreset = formData.ttsPreset || '';
-                if (ttsPreset.startsWith('minimax_speech_')) {
-                    config.properties.tts.vendor = 'minimax';
-                } else if (ttsPreset === 'openai_tts_1') {
-                    config.properties.tts.vendor = 'openai';
-                }
-                if (!config.properties.tts.params) config.properties.tts.params = {};
-                delete config.properties.tts.params.api_key;
-                delete config.properties.tts.params.key;
-                delete config.properties.tts.params.base_url;
-                delete config.properties.tts.params.url;
-                delete config.properties.tts.params.model;
-                delete config.properties.tts.params.model_id;
+            if (presetHasLlm && formData.llmPreset && config.properties.llm) {
+                this.applyManagedProviderBlock(config.properties.llm, formData.llmPreset, 'llm');
             }
-        }
-        if (presetHasAsr && config.properties.asr && config.properties.asr.vendor === 'deepgram' && config.properties.asr.params) {
-            delete config.properties.asr.params.key;
-            delete config.properties.asr.params.url;
-            delete config.properties.asr.params.model;
+            if (presetHasTts && formData.ttsPreset && config.properties.tts) {
+                this.applyManagedProviderBlock(config.properties.tts, formData.ttsPreset, 'tts');
+            }
         }
 
         return config;
@@ -2002,6 +2421,46 @@ window.Utils = class Utils {
         } catch (error) {
             console.error("Error generating token:", error);
             throw new Error("Failed to generate token: " + error.message);
+        }
+    }
+
+    /**
+     * Conversational AI API error reasons. InvalidRequest is deprecated.
+     */
+    static CONVO_AI_ERROR_REASONS_V27 = {
+        InvalidRequestBody: 'Request body is invalid.',
+        MissingRequiredField: 'A required field is missing.',
+        InvalidFieldValue: 'A field value is invalid.',
+        ServiceNotEnabled: 'Conversational AI service is not enabled for this project.',
+        AccountSuspended: 'Account is suspended.',
+        ResourceAllocationFailed: 'Failed to allocate agent resources.'
+    };
+
+    /** @deprecated — replaced by InvalidRequestBody, MissingRequiredField, InvalidFieldValue */
+    static isDeprecatedConvoAiReason(reason) {
+        return reason === 'InvalidRequest';
+    }
+
+    static describeConvoAiErrorReason(reason) {
+        if (this.isDeprecatedConvoAiReason(reason)) {
+            return 'Deprecated reason InvalidRequest. Map to InvalidRequestBody, MissingRequiredField, or InvalidFieldValue.';
+        }
+        return this.CONVO_AI_ERROR_REASONS_V27[reason] || null;
+    }
+
+    static formatConvoAiApiError(error) {
+        const message = error && error.message ? error.message : String(error);
+        try {
+            const parsed = JSON.parse(message);
+            const reason = parsed.reason || parsed.error?.reason;
+            const status = parsed.status || parsed.code;
+            const hint = reason ? this.describeConvoAiErrorReason(reason) : null;
+            const parts = [message];
+            if (status) parts.unshift(`HTTP ${status}`);
+            if (hint) parts.push(hint);
+            return parts.join(' — ');
+        } catch (_e) {
+            return message;
         }
     }
 } 

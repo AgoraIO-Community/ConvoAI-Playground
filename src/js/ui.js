@@ -11,6 +11,7 @@ window.UI = class UI {
         this.mllmParams = {};
         this.asrParams = {};
         this.ttsParams = {};
+        this.avatarParams = {};
         this.mcpServers = {};
         this.lastAgentListCursor = null;
         this.agentListPageHistory = []; // History of accumulated results for back navigation
@@ -35,10 +36,11 @@ window.UI = class UI {
         this.setupMessageUIState();
         this.checkCredentials();
         this.populateMicrosoftLangList();
+        this.populateMinimaxVoiceSelect();
         this.setupDrawerListeners();
         // Initialize TTS vendor blocks visibility
         this.handleTtsVendorChange();
-        this.syncRestoredFormDependents();
+        // Dependent UI (checkbox panels) runs via FormSettingsPersistence.syncDependentUI() at end of DOMContentLoaded
         // Update base URL indicator
         this.updateBaseUrlIndicator();
 
@@ -58,26 +60,67 @@ window.UI = class UI {
         this.initializeCameraPreviewManager();
     }
 
-    /** After restoring saved fields, refresh dependent UI (panels, vendors, tokens). */
+    /** Non-event side effects after saved settings (tokens, avatar layout). Called from syncDependentUI(). */
     syncRestoredFormDependents() {
-        if (typeof window.syncOptionalAgentSettingsPanels === "function") {
-            window.syncOptionalAgentSettingsPanels();
-        }
         this.handleGeofenceAreaChange();
         this.handleGeofenceExcludeChange();
-        document.getElementById("avatarVendor")?.dispatchEvent(new Event("change", { bubbles: true }));
-        document.getElementById("mllmVendor")?.dispatchEvent(new Event("change", { bubbles: true }));
-        document.getElementById("pipelineId")?.dispatchEvent(new Event("input", { bubbles: true }));
-        document.getElementById("rtcEncryptionMode")?.dispatchEvent(new Event("change", { bubbles: true }));
+        this.handleTtsVendorChange();
+        this.syncMinimaxVoiceSelect();
         if (
             window.subtitleManager &&
             typeof window.subtitleManager.updateLiveSubtitleMainControlsVisibility === "function"
         ) {
             window.subtitleManager.updateLiveSubtitleMainControlsVisibility();
         }
+        this.applyEnableAvatarUiIfChecked();
         this.trySyncAvatarFieldsFromClient();
         this.autoGenerateAgentAndClientTokensIfPossible();
         this.autoConfigureAvatarIfPossible();
+        this.updateMessageUIState();
+    }
+
+    /** Avatar enable UI without the Agora token modal (used on restore and after change handler). */
+    applyEnableAvatarUiIfChecked() {
+        const enableAvatar = document.getElementById("enableAvatar");
+        if (!enableAvatar || !enableAvatar.checked) return;
+
+        const avatarImage = document.getElementById("avatarImage");
+        const avatarVideo = document.getElementById("avatarVideo");
+        const avatarPlaceholder = document.getElementById("avatarPlaceholder");
+        const clientRtcUid = document.getElementById("clientRtcUid");
+        const remoteRtcUids = document.getElementById("remoteRtcUids");
+
+        if (avatarImage) avatarImage.style.display = "none";
+        if (avatarVideo) avatarVideo.style.display = "none";
+        if (avatarPlaceholder) {
+            avatarPlaceholder.style.display = "flex";
+            avatarPlaceholder.innerHTML = `
+          <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="#00ffff" stroke-width="2" opacity="0.3"/>
+            <g transform="translate(60, 45)">
+              <circle cx="0" cy="0" r="8" fill="none" stroke="#00ffff" stroke-width="1.5"/>
+              <circle cx="-12" cy="-8" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
+              <circle cx="12" cy="-8" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
+              <circle cx="-8" cy="12" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
+              <circle cx="8" cy="12" r="4" fill="none" stroke="#00ffff" stroke-width="1.5"/>
+              <line x1="-12" y1="-8" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
+              <line x1="12" y1="-8" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
+              <line x1="-8" y1="12" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
+              <line x1="8" y1="12" x2="0" y2="0" stroke="#00ffff" stroke-width="1" opacity="0.7"/>
+            </g>
+            <text x="60" y="85" text-anchor="middle" fill="#00ffff" font-family="Arial, sans-serif" font-size="12" font-weight="bold">AI AVATAR</text>
+          </svg>
+        `;
+        }
+
+        if (clientRtcUid && !clientRtcUid.value.trim()) {
+            clientRtcUid.value = "1001";
+        }
+        document.getElementById("clientUidNote")?.classList.remove("hidden");
+        if (remoteRtcUids && clientRtcUid) {
+            remoteRtcUids.value = clientRtcUid.value.trim() || "1001";
+        }
+        document.getElementById("avatarUidNote")?.classList.remove("hidden");
     }
 
     /** Match index.html AI Avatar enabled behavior without opening the token modal (e.g. after restore). */
@@ -135,6 +178,11 @@ window.UI = class UI {
         if (elevenLabsVoiceSelect) {
             elevenLabsVoiceSelect.addEventListener("change", () => this.handleElevenLabsVoiceChange());
         }
+
+        const minimaxVoiceSelect = document.getElementById("minimaxVoiceSelect");
+        if (minimaxVoiceSelect) {
+            minimaxVoiceSelect.addEventListener("change", () => this.handleMinimaxVoiceChange());
+        }
         
         // Sarvam speaker change handler
         const sarvamSpeakerSelect = document.getElementById("sarvamSpeaker");
@@ -177,6 +225,10 @@ window.UI = class UI {
         const addTtsParamBtn = document.getElementById("addTtsParamBtn");
         if (addTtsParamBtn) {
             addTtsParamBtn.addEventListener("click", () => this.addTtsParamField());
+        }
+        const addAvatarParamBtn = document.getElementById("addAvatarParamBtn");
+        if (addAvatarParamBtn) {
+            addAvatarParamBtn.addEventListener("click", () => this.addAvatarParamField());
         }
 
         // Enable Tools checkbox handler - use event delegation on document
@@ -273,6 +325,10 @@ window.UI = class UI {
         if (toggleAgentListFilters) {
             toggleAgentListFilters.addEventListener("click", () => this.toggleAgentListFilters());
         }
+        const toggleConversationTurnsOptions = document.getElementById("toggleConversationTurnsOptions");
+        if (toggleConversationTurnsOptions) {
+            toggleConversationTurnsOptions.addEventListener("click", () => this.toggleConversationTurnsOptions());
+        }
         const agentListNextPageBtn = document.getElementById("agentListNextPageBtn");
         if (agentListNextPageBtn) {
             agentListNextPageBtn.addEventListener("click", () => this.listAgentsNextPage());
@@ -285,6 +341,9 @@ window.UI = class UI {
         // Auto-populate to_time with current time when filters are shown
         const agentListFilterToTime = document.getElementById("agentListFilterToTime");
         if (agentListFilterToTime) {
+            agentListFilterToTime.addEventListener("input", () => {
+                agentListFilterToTime.dataset.userEdited = "true";
+            });
             // Set current time when the input is first shown
             this.setCurrentTimeForToTime();
         }
@@ -1521,7 +1580,7 @@ window.UI = class UI {
             "minimaxTtsKeyBlock",
             "minimaxGroupIdBlock",
             "minimaxModelBlock",
-            "minimaxVoiceIdBlock",
+            "minimaxVoiceBlock",
             "minimaxSampleRateBlock",
             "minimaxUrlBlock"
         ];
@@ -1574,6 +1633,29 @@ window.UI = class UI {
             "murfRateBlock",
             "murfPitchBlock",
             "murfSampleRateBlock"
+        ];
+        const gradiumBlocks = [
+            "gradiumTtsKeyBlock",
+            "gradiumUrlBlock",
+            "gradiumModelNameBlock",
+            "gradiumVoiceIdBlock",
+            "gradiumSampleRateBlock"
+        ];
+        const mistralBlocks = [
+            "mistralTtsKeyBlock",
+            "mistralModelBlock",
+            "mistralVoiceBlock"
+        ];
+        const genericHttpBlocks = [
+            "genericHttpUrlBlock",
+            "genericHttpTtsKeyBlock",
+            "genericHttpHeadersBlock",
+            "genericHttpModelBlock",
+            "genericHttpVoiceBlock",
+            "genericHttpSpeedBlock",
+            "genericHttpSampleRateBlock",
+            "genericHttpResponseFormatBlock",
+            "genericHttpInstructionBlock"
         ];
 
         msBlocks.forEach(block => {
@@ -1681,6 +1763,27 @@ window.UI = class UI {
             }
         });
 
+        gradiumBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "gradium");
+            }
+        });
+
+        mistralBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "mistral");
+            }
+        });
+
+        genericHttpBlocks.forEach(block => {
+            const element = document.getElementById(block);
+            if (element) {
+                element.classList.toggle("hidden", vendor !== "generic_http");
+            }
+        });
+
         // Handle Microsoft language population when vendor changes to Microsoft
         if (vendor === "microsoft") {
             this.populateMicrosoftLangList();
@@ -1710,6 +1813,90 @@ window.UI = class UI {
         
         const voiceSel = elevenLabsVoiceSelect.value;
         voiceIdBlk.classList.toggle("hidden", voiceSel !== "other");
+    }
+
+    populateMinimaxVoiceSelect() {
+        const voiceSelect = document.getElementById("minimaxVoiceSelect");
+        if (!voiceSelect) return;
+
+        if (!window.minimaxVoicesByLang) {
+            console.warn("MiniMax voices data not loaded");
+            return;
+        }
+
+        const currentVoice = voiceSelect.value;
+        voiceSelect.innerHTML = "";
+
+        Object.keys(window.minimaxVoicesByLang).forEach((language) => {
+            const group = document.createElement("optgroup");
+            group.label = language;
+            (window.minimaxVoicesByLang[language] || []).forEach((voice) => {
+                const opt = document.createElement("option");
+                opt.value = voice.voiceId;
+                opt.textContent = `${voice.label} (${voice.gender})`;
+                group.appendChild(opt);
+            });
+            voiceSelect.appendChild(group);
+        });
+
+        const otherOpt = document.createElement("option");
+        otherOpt.value = "other";
+        otherOpt.textContent = "Other (custom voice ID)";
+        voiceSelect.appendChild(otherOpt);
+
+        if (currentVoice) {
+            voiceSelect.value = currentVoice;
+        } else {
+            voiceSelect.value = "English_captivating_female1";
+        }
+
+        this.syncMinimaxVoiceSelect();
+    }
+
+    syncMinimaxVoiceSelect() {
+        const voiceSelect = document.getElementById("minimaxVoiceSelect");
+        const customInput = document.getElementById("minimaxVoiceId");
+        if (!voiceSelect) return;
+
+        const savedVoice = (customInput?.value || "").trim();
+        const selectVoice = voiceSelect.value;
+
+        if (selectVoice && selectVoice !== "other") {
+            this.handleMinimaxVoiceChange();
+            return;
+        }
+
+        if (!savedVoice) {
+            if (!selectVoice || selectVoice === "other") {
+                voiceSelect.value = "English_captivating_female1";
+            }
+            this.handleMinimaxVoiceChange();
+            return;
+        }
+
+        const catalogMatch = Array.from(voiceSelect.options).some(
+            (opt) => opt.value === savedVoice && opt.value !== "other"
+        );
+
+        if (catalogMatch) {
+            voiceSelect.value = savedVoice;
+        } else {
+            voiceSelect.value = "other";
+            if (customInput) customInput.value = savedVoice;
+        }
+
+        this.handleMinimaxVoiceChange();
+    }
+
+    handleMinimaxVoiceChange() {
+        const voiceSelect = document.getElementById("minimaxVoiceSelect");
+        const customBlock = document.getElementById("minimaxVoiceCustomBlock");
+
+        if (!voiceSelect || !customBlock) {
+            return;
+        }
+
+        customBlock.classList.toggle("hidden", voiceSelect.value !== "other");
     }
 
     handleSarvamSpeakerChange() {
@@ -2153,6 +2340,82 @@ window.UI = class UI {
         delete this.ttsParams[id];
     }
 
+    addAvatarParamField() {
+        const container = document.getElementById("avatar-param-container");
+        const paramId = "avatar-param-" + Object.keys(this.avatarParams).length;
+
+        const div = document.createElement("div");
+        div.classList.add("flex", "gap-2", "items-center");
+        div.id = paramId;
+
+        div.innerHTML = `
+            <select class="border p-2 w-1/5 rounded bg-gray-800 text-white">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="array">Array</option>
+                <option value="object">Object</option>
+            </select>
+            <input type="text" placeholder="Key" class="border p-2 w-1/4 rounded bg-gray-800 text-white">
+            <input type="text" placeholder="Value" class="border p-2 w-2/5 rounded bg-gray-800 text-white" id="${paramId}-value">
+            <button class="text-red-500">❌</button>
+        `;
+
+        const select = div.querySelector('select');
+        const keyInput = div.querySelector('input[placeholder="Key"]');
+        const valueInput = div.querySelector('input[placeholder="Value"]');
+        const removeBtn = div.querySelector('button');
+
+        select.addEventListener('change', () => this.updateAvatarParam(paramId, select, 'type'));
+        keyInput.addEventListener('input', () => this.updateAvatarParam(paramId, keyInput, 'key'));
+        valueInput.addEventListener('input', () => this.updateAvatarParam(paramId, valueInput, 'value'));
+        removeBtn.addEventListener('click', () => this.removeAvatarParam(paramId));
+
+        container.appendChild(div);
+        this.avatarParams[paramId] = { key: "", type: "string", value: "" };
+    }
+
+    updateAvatarParam(id, input, fieldType) {
+        if (fieldType === "key") this.avatarParams[id].key = input.value;
+
+        if (fieldType === "type") {
+            this.avatarParams[id].type = input.value;
+            let valueInput = document.getElementById(`${id}-value`);
+
+            if (input.value === "array") {
+                valueInput.placeholder = "Comma-separated values";
+            } else if (input.value === "object") {
+                valueInput.placeholder = "Enter JSON";
+                valueInput.value = "{}";
+            } else {
+                valueInput.placeholder = "Value";
+                valueInput.value = "";
+            }
+        }
+
+        if (fieldType === "value") {
+            let type = this.avatarParams[id].type;
+            if (type === "array") {
+                this.avatarParams[id].value = input.value.split(",").map(v => v.trim());
+            } else if (type === "number") {
+                this.avatarParams[id].value = Number(input.value);
+            } else if (type === "object") {
+                try {
+                    this.avatarParams[id].value = JSON.parse(input.value);
+                    input.style.borderColor = "green";
+                } catch (e) {
+                    input.style.borderColor = "red";
+                }
+            } else {
+                this.avatarParams[id].value = input.value;
+            }
+        }
+    }
+
+    removeAvatarParam(id) {
+        document.getElementById(id).remove();
+        delete this.avatarParams[id];
+    }
+
     handleEnableToolsChange() {
         const enableToolsCheckbox = document.getElementById("enableTools");
         const mcpServersConfig = document.getElementById("mcpServersConfig");
@@ -2555,16 +2818,19 @@ window.UI = class UI {
 
     setCurrentTimeForToTime() {
         const toTimeInput = document.getElementById("agentListFilterToTime");
-        if (toTimeInput && !toTimeInput.value) {
-            // Format current time as datetime-local (YYYY-MM-DDTHH:mm)
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            toTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
+        // Values the browser restores across reloads are stale, so only keep a value the user typed
+        if (!toTimeInput || toTimeInput.dataset.userEdited === "true") return;
+
+        // Round up to the next minute so the window still covers agents started seconds ago
+        const now = new Date();
+        now.setSeconds(0, 0);
+        now.setMinutes(now.getMinutes() + 1);
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        toTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 
     toggleAgentListFilters() {
@@ -2580,6 +2846,21 @@ window.UI = class UI {
             } else {
                 filtersDiv.classList.add("hidden");
                 toggleText.textContent = "Show Advanced Filters";
+            }
+        }
+    }
+
+    toggleConversationTurnsOptions() {
+        const optionsDiv = document.getElementById("conversationTurnsOptions");
+        const toggleText = document.getElementById("toggleConversationTurnsOptionsText");
+        if (optionsDiv && toggleText) {
+            const isHidden = optionsDiv.classList.contains("hidden");
+            if (isHidden) {
+                optionsDiv.classList.remove("hidden");
+                toggleText.textContent = "Hide Conversation Turn Options";
+            } else {
+                optionsDiv.classList.add("hidden");
+                toggleText.textContent = "Show Conversation Turn Options";
             }
         }
     }

@@ -16,7 +16,8 @@ class SubtitleManager {
         this.chatHistoryData = [];
         this.conversationalAIAPI = null;
         this.expectedAgentId = null;
-        this.agentActivityState = 'unknown';
+        this.agentActivityState = 'idle';
+        this.agentActivityTrackingEnabled = false;
         this.statusOnlyDataStream = false;
         this.streamMessageHandler = null;
         this.hasExplicitAgentStateSignal = false;
@@ -89,6 +90,17 @@ class SubtitleManager {
             this.elements.enableSubtitles.addEventListener('change', (e) => {
                 this.updateLiveSubtitleMainControlsVisibility();
                 if (e.target.checked) {
+                    if (window.__formSettingRestoreSync) {
+                        if (this.elements.subtitleModeDataStream && this.elements.subtitleModeDataStream.checked) {
+                            this.enableDataStreamMode();
+                        } else {
+                            if (this.elements.subtitleModeRTM) {
+                                this.elements.subtitleModeRTM.checked = true;
+                            }
+                            this.enableRTMMode();
+                        }
+                        return;
+                    }
                     // Check which mode is selected
                     if (this.elements.subtitleModeRTM && this.elements.subtitleModeRTM.checked) {
                         this.enableRTMMode();
@@ -384,11 +396,13 @@ class SubtitleManager {
     }
 
     updateAgentActivityStatus(state, detail = '') {
+        if (!this.agentActivityTrackingEnabled) return;
+
         const el = this.elements.agentActivityStatus;
         if (!el) return;
 
         const normalized = (state || '').toString().toLowerCase();
-        let label = 'Waiting for state';
+        let label = 'Idle';
         let css = 'text-gray-300';
 
         if (normalized === 'speaking') {
@@ -406,6 +420,9 @@ class SubtitleManager {
         } else if (normalized === 'disconnected') {
             label = 'Disconnected';
             css = 'text-gray-500';
+        } else if (normalized === 'idle' || normalized === 'unknown') {
+            label = 'Idle';
+            css = 'text-gray-300';
         }
 
         if (detail) {
@@ -417,9 +434,21 @@ class SubtitleManager {
         this.agentActivityState = normalized || 'idle';
     }
 
-    clearAgentActivityStatus() {
+    enableAgentActivityTracking() {
+        this.agentActivityTrackingEnabled = true;
         this.hasExplicitAgentStateSignal = false;
-        this.updateAgentActivityStatus('unknown');
+        this.updateAgentActivityStatus('idle');
+    }
+
+    clearAgentActivityStatus() {
+        this.agentActivityTrackingEnabled = false;
+        this.hasExplicitAgentStateSignal = false;
+        this.agentActivityState = 'idle';
+        const el = this.elements.agentActivityStatus;
+        if (el) {
+            el.className = 'font-medium text-gray-300';
+            el.textContent = 'Idle';
+        }
     }
 
     // Reset the clear flag when starting a new session
@@ -937,6 +966,12 @@ class SubtitleManager {
                     this.handleAgentStateChanged(event);
                 });
 
+                if (window.EConversationalAIAPIEvents.MANUAL_TURN_RESULT) {
+                    this.conversationalAIAPI.on(window.EConversationalAIAPIEvents.MANUAL_TURN_RESULT, (agentUserId, result) => {
+                        this.handleManualTurnResult(agentUserId, result);
+                    });
+                }
+
                 this.conversationalAIAPI.on(window.EConversationalAIAPIEvents.DEBUG_LOG, (message) => {
                     console.log('ConversationalAI Debug:', message);
                 });
@@ -951,6 +986,7 @@ class SubtitleManager {
                 await this.conversationalAIAPI.subscribeMessage(channelName);
 
                 console.log('Conversational AI API initialized successfully for subtitles');
+                this.enableAgentActivityTracking();
                 this.showNotification('Transcription service connected successfully', 'success');
             } else {
                 const errorMsg = 'ConversationalAIAPI not available. Please ensure the API is loaded.';
@@ -985,6 +1021,7 @@ class SubtitleManager {
                 console.error('Error cleaning up Conversational AI:', error);
             }
         }
+        this.clearAgentActivityStatus();
     }
 
     handleTranscriptionUpdate(chatHistory) {
@@ -1057,8 +1094,64 @@ class SubtitleManager {
         }
     }
 
+    handleManualTurnResult(agentUserId, result) {
+        if (!result) return;
+        const statusEl = document.getElementById('manualTurnStatus');
+        const label = result.eventType || 'manual turn';
+        const successText = result.success === true ? 'accepted' : (result.success === false ? 'rejected' : 'received');
+        const detailParts = [
+            `${label}: ${successText}`,
+            result.requestId ? `request=${result.requestId}` : null,
+            result.turnId != null ? `turn=${result.turnId}` : null,
+            result.reason ? `reason=${result.reason}` : null,
+            result.errorMessage ? result.errorMessage : null
+        ].filter(Boolean);
+        const message = detailParts.join(' · ');
+        console.log('Manual turn result:', agentUserId, result);
+        if (statusEl) {
+            statusEl.textContent = message;
+            statusEl.classList.remove('hidden');
+        }
+    }
+
+    async sendManualSos() {
+        const agentRtcUid = this.getAgentRtcUidForManualTurn();
+        if (!this.conversationalAIAPI || !this.conversationalAIAPI.isReady()) {
+            throw new Error('RTM is not ready. Enable RTM and join the channel before sending manual SoS.');
+        }
+        return this.conversationalAIAPI.publishManualSos(agentRtcUid);
+    }
+
+    async sendManualEos() {
+        const agentRtcUid = this.getAgentRtcUidForManualTurn();
+        if (!this.conversationalAIAPI || !this.conversationalAIAPI.isReady()) {
+            throw new Error('RTM is not ready. Enable RTM and join the channel before sending manual EoS.');
+        }
+        return this.conversationalAIAPI.publishManualEos(agentRtcUid);
+    }
+
+    getAgentRtcUidForManualTurn() {
+        const agentRtcUidElement = document.getElementById('agoraRtcUid');
+        const agentRtcUid = agentRtcUidElement ? agentRtcUidElement.value.trim() : '';
+        if (!agentRtcUid) {
+            throw new Error('Agent RTC UID is required for manual turn control.');
+        }
+        return agentRtcUid;
+    }
+
     extractExplicitAgentState(messageDataJson) {
         if (!messageDataJson || typeof messageDataJson !== 'object') return null;
+
+        if (typeof messageDataJson.event_type === 'string' && messageDataJson.event_type.startsWith('state.')) {
+            const payload = messageDataJson.payload || {};
+            const value = typeof payload.value === 'boolean' ? payload.value : true;
+            const base = messageDataJson.event_type.replace('state.', '');
+            if (!value) {
+                if (base === 'speaking' || base === 'thinking') return 'listening';
+                return 'idle';
+            }
+            return base;
+        }
 
         if (typeof messageDataJson.state === 'string' && messageDataJson.state.trim()) {
             return messageDataJson.state.trim().toLowerCase();
@@ -1496,6 +1589,7 @@ class SubtitleManager {
         
         // Reset chat clear state for new session
         this.resetChatClearState();
+        this.enableAgentActivityTracking();
 
         console.log('🔵 Data Stream Subtitles: Initializing for agent UID:', agentUid);
         console.log('🔵 Data Stream Subtitles: RTC Client available:', !!rtcClient);
@@ -1850,6 +1944,7 @@ class SubtitleManager {
         this.currentUserMessage = null;
         this.currentUserTurnId = null;
         this.statusOnlyDataStream = false;
+        this.clearAgentActivityStatus();
         
         console.log('🔵 Data Stream Subtitles: Cleanup complete');
     }
